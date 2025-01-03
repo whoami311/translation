@@ -1514,3 +1514,447 @@ ffmpeg -dump_attachment:t "" -i INPUT
 技术说明 - 附件是作为编解码器额外数据实现的，因此实际上此选项可用于从任何流（而不仅仅是附件）中提取额外数据。
 
 ### 5.5 Video Options
+
+-vframes *number* (*output*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;设置要输出的视频帧数量。这是 `-frames:v` 的过时别名，建议使用后者代替。
+
+-r[:*stream_specifier*] *fps* (input/output,per-strea)
+
+&nbsp;&nbsp;&nbsp;&nbsp;设置帧率（Hz 值、分数或缩写）。
+
+&nbsp;&nbsp;&nbsp;&nbsp;作为输入选项时，忽略文件中存储的任何时间戳，并假设恒定帧率为 *fps* 生成时间戳。这与用于像 image2 或 v4l2 这类输入格式的 -framerate 选项不同（在 FFmpeg 的旧版本中是相同的）。如果不确定，请使用 -framerate 而不是输入选项 -r。
+
+作为输出选项时：
+
+- video encoding
+  在编码之前复制或丢弃帧以实现恒定的输出帧率 fps。
+- video streamcopy
+  指示复用器 *fps* 是流的帧率。在这种情况下不会丢弃或复制数据。如果 *fps* 不匹配由包时间戳确定的实际流帧率，这可能会产生无效文件。另请参阅 `setts` 比特流滤镜。
+
+-fpsmax[:*stream_specifier*] *fps* (*output,per-stream*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;设置最大帧率（Hz 值、分数或缩写）。
+
+&nbsp;&nbsp;&nbsp;&nbsp;当输出帧率自动设置且高于此值时，限制输出帧率。在批处理或输入帧率被错误检测为非常高时很有用。它不能与 `-r` 同时设置。在流复制期间会被忽略。
+
+-s[:*stream_specifier*] *size* (*input/output,per-stream*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;设置帧大小。
+
+&nbsp;&nbsp;&nbsp;&nbsp;作为输入选项时，这是某些解复用器识别的 video_size 私有选项的快捷方式，这些解复用器的帧大小要么未存储在文件中，要么是可配置的——例如原始视频或视频采集设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;作为输出选项时，这会在相应的滤镜图末尾插入 `scale` 视频滤镜。请直接使用 `scale` 滤镜以将其插入到开头或其他位置。
+
+&nbsp;&nbsp;&nbsp;&nbsp;格式为 'wxh'（默认值——与源相同）。
+
+-aspect[:*stream_specifier*] *aspect* (*output,per-stream*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;设置指定的视频显示宽高比。
+
+&nbsp;&nbsp;&nbsp;&nbsp;aspect 可以是一个浮点数字符串，或者是一个形式为 num:den 的字符串，其中 num 和 den 分别是宽高比的分子和分母。例如 "4:3"、"16:9"、"1.3333" 和 "1.7777" 都是有效的参数值。
+
+&nbsp;&nbsp;&nbsp;&nbsp;如果与 -vcodec copy 一起使用，它将影响容器级别存储的宽高比，但不会影响编码帧中存储的宽高比（如果存在）。
+
+-display_rotation[:*stream_specifier*] *rotation* (*input,per-stream*)
+设置视频旋转元数据。
+
+&nbsp;&nbsp;&nbsp;&nbsp;*rotation* 是一个十进制数，指定了视频在显示前应逆时针旋转的度数。
+
+&nbsp;&nbsp;&nbsp;&nbsp;这个选项会覆盖文件中存储的任何旋转/显示变换元数据。当视频被转码（而不是复制）且启用了 `-autorotate` 时，视频将在滤镜阶段进行旋转。否则，如果复用器支持，元数据将被写入输出文件。
+
+&nbsp;&nbsp;&nbsp;&nbsp;如果给出了 `-display_hflip` 和/或 `-display_vflip` 选项，则它们将在本选项指定的旋转之后应用。
+
+-display_hflip[:*stream_specifier*] (*input,per-stream*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;设置在显示时图像是否应该水平翻转。
+
+&nbsp;&nbsp;&nbsp;&nbsp;更多详情请参见 `-display_rotation` 选项。
+
+-display_vflip[:*stream_specifier*] (*input,per-stream*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;设置在显示时图像是否应该垂直翻转。
+
+&nbsp;&nbsp;&nbsp;&nbsp;更多详情请参见 `-display_rotation` 选项。
+
+-vn (*input/output*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;作为输入选项，阻止文件中的所有视频流被过滤或自动选择或映射到任何输出。参见 `-discard` 选项以单独禁用流。
+
+&nbsp;&nbsp;&nbsp;&nbsp;作为输出选项，禁用视频记录，即自动选择或映射任何视频流。对于完全的手动控制，请参阅 `-map` 选项。
+
+-vcodec *codec* (*output)
+
+&nbsp;&nbsp;&nbsp;&nbsp;设置视频编解码器。这是 `-codec:v` 的别名。
+
+-pass[:*stream_specifier*] n (*output,per-stream*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;选择通过次数（1 或 2）。用于两遍视频编码。第一遍会将视频的统计数据记录到一个日志文件中（另见 -passlogfile 选项），第二遍则使用该日志文件生成符合请求比特率的视频。在第一遍时，您可以仅停用音频并将输出设为 null。以下是在 Windows 和 Unix 上的例子：
+
+```shell
+ffmpeg -i foo.mov -c:v libxvid -pass 1 -an -f rawvideo -y NUL
+ffmpeg -i foo.mov -c:v libxvid -pass 1 -an -f rawvideo -y /dev/null
+```
+
+-passlogfile[:*stream_specifier*] *prefix* (output,per-stream)
+
+&nbsp;&nbsp;&nbsp;&nbsp;将两遍日志文件名前缀设置为 prefix，默认文件名前缀是 "ffmpeg2pass"。完整的文件名将是 PREFIX-N.log，其中 N 是特定于输出流的数字。
+
+-vf *filtergraph* (*output*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;创建由 filtergraph 描述的滤镜图并用它来过滤流。
+
+&nbsp;&nbsp;&nbsp;&nbsp;这是 `-filter:v` 的别名，详见 -filter 选项。
+
+-autorotate
+
+&nbsp;&nbsp;&nbsp;&nbsp;根据文件元数据自动旋转视频。默认启用，使用 -noautorotate 禁用。
+
+-autoscale
+
+&nbsp;&nbsp;&nbsp;&nbsp;根据第一帧的分辨率自动缩放视频。默认启用，使用 -noautoscale 禁用。当禁用 autoscale 时，滤镜图的所有输出帧可能不在同一分辨率，并且可能不适合某些编码器/复用器。因此，除非您确实知道自己在做什么，否则不建议禁用它。自行承担风险禁用 autoscale。
+
+### 5.6 Advanced Video options
+
+-pix_fmt[:stream_specifier] format (*input/output,per-stream*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;设置像素格式。使用 `-pix_fmts` 查看所有支持的像素格式。如果选定的像素格式无法选择，FFmpeg 将打印警告并选择编码器支持的最佳像素格式。如果 pix_fmt 前缀为 `+`，则 FFmpeg 会在请求的像素格式无法选择时退出，并禁用滤镜图内的自动转换。如果 pix_fmt 是一个单独的 `+`，FFmpeg 会选择与输入（或图输出）相同的像素格式，并禁用自动转换。
+
+-sws_flags flags (*input/output*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;设置 libswscale 库的默认标志。这些标志用于自动插入的 `scale` 滤镜以及简单滤镜图中的滤镜，除非在滤镜图定义中被覆盖。
+
+&nbsp;&nbsp;&nbsp;&nbsp;有关缩放器选项列表，请参阅 (ffmpeg-scaler)ffmpeg-scaler 手册。
+
+-rc_override[:stream_specifier] override (*output,per-stream*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;特定区间的码率控制覆盖，格式化为 "int,int,int" 列表并以斜杠分隔。前两个值是开始和结束帧号，最后一个值是正数时使用的量化器，或负数时的质量因子。
+
+-vstats
+
+&nbsp;&nbsp;&nbsp;&nbsp;将视频编码统计信息转储到 vstats_HHMMSS.log 文件中。有关格式描述，请参阅 vstats 文件格式部分。
+
+-vstats_file file
+
+&nbsp;&nbsp;&nbsp;&nbsp;将视频编码统计信息转储到指定文件中。有关格式描述，请参阅 vstats 文件格式部分。
+
+-vstats_version file
+
+&nbsp;&nbsp;&nbsp;&nbsp;指定要使用的 vstats 格式版本，默认为 `2`。有关格式描述，请参阅 vstats 文件格式部分。
+
+-vtag fourcc/tag (*output*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;强制视频标签/fourcc。这是 `-tag:v` 的别名。
+
+-force_key_frames[:stream_specifier] time[,time...] (*output,per-stream*)
+-force_key_frames[:stream_specifier] expr:expr (*output,per-stream*)
+-force_key_frames[:stream_specifier] source (*output,per-stream*)
+
+force_key_frames 可以接受以下形式的参数：
+
+&nbsp;&nbsp;&nbsp;&nbsp;time[,time...]
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果参数由时间戳组成，FFmpeg 将指定的时间四舍五入到最接近的输出时间戳（根据编码器时间基准），并在第一个时间戳等于或大于计算后时间戳的帧上强制关键帧。请注意，如果编码器时间基准太粗糙，则关键帧可能会被强制在时间戳低于指定时间的帧上。默认编码器时间基准是输出帧率的倒数，但可以通过 `-enc_time_base` 设置为其他值。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果其中一个时间是 "`chapters`[delta]"，它会展开为文件中所有章节开始的时间，并根据 delta 进行偏移，delta 以秒为单位表示的时间。此选项可用于确保在章节标记或输出文件中的任何其他指定位置存在一个寻址点（seek point）。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;例如，在5分钟处插入一个关键帧，并在每个章节开始前0.1秒插入关键帧：
+
+```shell
+-force_key_frames 0:05:00,chapters-0.1
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;expr:expr
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果参数以前缀 `expr:` 开头，则字符串 expr 被解释为表达式，并针对每一帧进行求值。如果求值结果非零，则会强制一个关键帧。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;表达式 expr 中可以包含以下常量：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;n
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;从 0 开始的当前处理帧的编号
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;n_forced
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;已强制帧的数量
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;prev_forced_n
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一个强制帧的编号，如果没有强制过关键帧则为 `NAN`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;prev_forced_t
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一个强制帧的时间，如果没有强制过关键帧则为 `NAN`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当前处理帧的时间
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;例如，每 5 秒强制一个关键帧，您可以指定：
+
+```shell
+-force_key_frames expr:gte(t,n_forced*5)
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;从第 13 秒起，每隔 5 秒在上一个强制帧之后强制一个关键帧：
+
+```shell
+-force_key_frames expr:if(isnan(prev_forced_t),gte(t,13),gte(t,prev_forced_t+5))
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;source
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果参数为 `source`，FFmpeg 将在当前正在编码的帧在其源中标记为关键帧时强制一个关键帧。如果此特定源帧必须被丢弃，则强制下一个可用帧成为关键帧。
+
+&nbsp;&nbsp;&nbsp;&nbsp;注意：强迫过多的关键帧对某些编码器的 lookahead 算法非常有害：使用固定 GOP 选项或类似选项会更有效。
+
+-apply_cropping[:stream_specifier] source (*input,per-stream*)
+
+&nbsp;&nbsp;&nbsp;&nbsp;根据文件元数据自动裁剪解码后的视频。默认为 all。
+
+&nbsp;&nbsp;&nbsp;&nbsp;none (0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不应用任何裁剪元数据。
+
+&nbsp;&nbsp;&nbsp;&nbsp;all (1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;应用编解码器级别和容器级别的裁剪。这是默认模式。
+
+&nbsp;&nbsp;&nbsp;&nbsp;codec (2)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;应用编解码器级别的裁剪。
+
+&nbsp;&nbsp;&nbsp;&nbsp;container (3)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;应用容器级别的裁剪。
+
+-copyinkf[:stream_specifier] (*output,per-stream*)
+&nbsp;&nbsp;&nbsp;&nbsp;在进行流复制时，也复制位于开头的非关键帧。
+
+-init_hw_device type[=name][:device[,key=value...]]
+&nbsp;&nbsp;&nbsp;&nbsp;初始化一个名为 name 的新硬件设备，类型为 type，并使用给定的设备参数。如果没有指定名称，则会获得 "type%d" 格式的默认名称。
+
+&nbsp;&nbsp;&nbsp;&nbsp;设备和以下参数的意义取决于设备类型：
+
+&nbsp;&nbsp;&nbsp;&nbsp;cuda
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device 是 CUDA 设备的编号。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可识别的选项包括：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;primary_ctx
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果设置为 1，则使用主设备上下文而不是创建新的上下文。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;示例：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device cuda:1***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择系统上的第二个设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device cuda:0,primary_ctx=1***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择第一个设备并使用主设备上下文。
+
+&nbsp;&nbsp;&nbsp;&nbsp;dxva2
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device 是 Direct3D 9 显示适配器的编号。
+
+&nbsp;&nbsp;&nbsp;&nbsp;d3d11va
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device 是 Direct3D 11 显示适配器的编号。如果没有指定，则尝试使用默认的 Direct3D 11 显示适配器或硬件 VendorId 由 ‘vendor_id’ 指定的第一个 Direct3D 11 显示适配器。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;示例：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device d3d11va***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在默认 Direct3D 11 显示适配器上创建 d3d11va 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device d3d11va:1***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在由索引 1 指定的 Direct3D 11 显示适配器上创建 d3d11va 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device d3d11va:,vendor_id=0x8086***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在硬件 VendorId 为 0x8086 的第一个 Direct3D 11 显示适配器上创建 d3d11va 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;vaapi
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device 可以是 X11 显示名称、DRM 渲染节点或 DirectX 适配器索引。如果没有指定，则尝试打开默认 X11 显示 ($DISPLAY) 和第一个 DRM 渲染节点 (/dev/dri/renderD128)，或者 Windows 上的默认 DirectX 适配器。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可识别的选项包括：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;kernel_driver
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当未指定 device 时，使用此选项指定与所需设备关联的内核驱动程序名称。仅当启用了硬件加速方法 drm 和 vaapi 时可用。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vendor_id
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当未指定 device 和 kernel_driver 时，使用此选项指定与所需设备关联的供应商 ID。仅当启用了硬件加速方法 drm 和 vaapi 且未指定 kernel_driver 时可用。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;示例：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device vaapi***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在默认设备上创建 vaapi 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device vaapi:/dev/dri/renderD129***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在 DRM 渲染节点 /dev/dri/renderD129 上创建 vaapi 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device vaapi:1***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在 DirectX 适配器 1 上创建 vaapi 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device vaapi:,kernel_driver=i915***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在与内核驱动程序 ‘i915’ 关联的设备上创建 vaapi 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device vaapi:,vendor_id=0x8086***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在与供应商 ID ‘0x8086’ 关联的设备上创建 vaapi 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;vdpau
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device 是 X11 显示名称。如果没有指定，则尝试打开默认 X11 显示 ($DISPLAY)。
+
+&nbsp;&nbsp;&nbsp;&nbsp;qsv
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device 选择 ‘MFX_IMPL_*’ 中的一个值。允许的值有：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;auto
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sw
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hw
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;auto_any
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hw_any
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hw2
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hw3
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hw4
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果没有指定，默认使用 ‘auto_any’。（请注意，通过创建适当的平台子设备（‘dxva2’ 或 ‘d3d11va’ 或 ‘vaapi’）然后从中派生 QSV 设备，可能会更容易实现所需的 QSV 结果。）
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可识别的选项包括：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;child_device
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;指定 Linux 上的 DRM 渲染节点或 Windows 上的 DirectX 适配器。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;child_device_type
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择平台适用的子设备类型。在 Windows 上，如果配置时指定了 `--enable-libvpl`，则默认使用 ‘d3d11va’ 子设备类型；如果指定了 `--enable-libmfx`，则默认使用 ‘dxva2’ 子设备类型。在 Linux 上，用户只能使用 ‘vaapi’ 作为子设备类型。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;示例：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device qsv:hw,child_device=/dev/dri/renderD129***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在 DRM 渲染节点 /dev/dri/renderD129 上创建具有 ‘MFX_IMPL_HARDWARE’ 的 QSV 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device qsv:hw,child_device=1***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在 DirectX 适配器 1 上创建具有 ‘MFX_IMPL_HARDWARE’ 的 QSV 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device qsv:hw,child_device_type=d3d11va***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择类型为 ‘d3d11va’ 的 GPU 子设备并创建具有 ‘MFX_IMPL_HARDWARE’ 的 QSV 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device qsv:hw,child_device_type=dxva2***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择类型为 ‘dxva2’ 的 GPU 子设备并创建具有 ‘MFX_IMPL_HARDWARE’ 的 QSV 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device qsv:hw,child_device=1,child_device_type=d3d11va***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在类型为 ‘d3d11va’ 的 DirectX 适配器 1 上创建具有 ‘MFX_IMPL_HARDWARE’ 的 QSV 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device vaapi=va:/dev/dri/renderD129 -init_hw_device qsv=hw1@va***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在 /dev/dri/renderD129 上创建名为 ‘va’ 的 VAAPI 设备，然后从设备 ‘va’ 派生名为 ‘hw1’ 的 QSV 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;opencl
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device 选择 platform_index.device_index 形式的平台和设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;还可以使用键值对过滤器来查找符合特定平台或设备字符串的设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可用作过滤器的字符串有：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;platform_profile
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;platform_version
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;platform_name
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;platform_vendor
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;platform_extensions
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device_name
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device_vendor
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;driver_version
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device_version
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device_profile
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device_extensions
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device_type
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;索引和过滤器必须共同唯一地选择一个设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;示例：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device opencl:0.1***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择第一个平台上的第二个设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device opencl:,device_name=Foo9000***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择名称包含字符串 Foo9000 的设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device opencl:1,device_type=gpu,device_extensions=cl_khr_fp16***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择支持 cl_khr_fp16 扩展的第二个平台上的 GPU 设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;vulkan
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果 device 是整数，则按系统依赖的设备列表中的索引选择设备。如果 device 是其他字符串，则选择名称包含该字符串作为子串的第一个设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可识别的选项包括：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;debug
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果设置为 1，则启用验证层（如果已安装）。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;linear_images
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果设置为 1，则 hwcontext 分配的图像将是线性的并且可以局部映射。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;instance_extensions
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;附加实例扩展的加号分隔列表。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device_extensions
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;附加设备扩展的加号分隔列表。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;示例：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device vulkan:1***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择系统上的第二个设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device vulkan:RADV***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择名称包含字符串 RADV 的第一个设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;***-init_hw_device vulkan:0,instance_extensions=VK_KHR_wayland_surface+VK_KHR_xcb_surface***
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择第一个设备并启用 Wayland 和 XCB 实例扩展。
+
+-init_hw_device type[=name]@source
+&nbsp;&nbsp;&nbsp;&nbsp;初始化一个名为 name 的新硬件设备，类型为 type，并从已有的名为 source 的设备派生。
+
+-init_hw_device list
+&nbsp;&nbsp;&nbsp;&nbsp;列出此版本 ffmpeg 支持的所有硬件设备类型。
+
+-filter_hw_device name
+&nbsp;&nbsp;&nbsp;&nbsp;将名为 name 的硬件设备传递给任何滤镜图中的所有滤镜。这可以用于设置 `hwupload` 滤镜要上传到的设备，或 `hwmap` 滤镜要映射到的设备。其他滤镜在需要硬件设备时也可能使用这个参数。请注意，通常只有当输入不是已经处于硬件帧时才需要这样做——当它是的时候，滤镜会从它们接收到的帧上下文中推导出所需的设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;这是一个全局设置，因此所有滤镜都将接收相同的设备。
+
+-hwaccel[:stream_specifier] hwaccel (*input,per-stream*)
+&nbsp;&nbsp;&nbsp;&nbsp;使用硬件加速解码匹配的流。hwaccel 允许的值有：
+
+&nbsp;&nbsp;&nbsp;&nbsp;none
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不使用任何硬件加速（默认）。
+
+&nbsp;&nbsp;&nbsp;&nbsp;auto
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;自动选择硬件加速方法。
+
+&nbsp;&nbsp;&nbsp;&nbsp;vdpau
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用 VDPAU（Unix 视频解码和演示 API）硬件加速。
+
+&nbsp;&nbsp;&nbsp;&nbsp;dxva2
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用 DXVA2（DirectX 视频加速）硬件加速。
+
+&nbsp;&nbsp;&nbsp;&nbsp;d3d11va
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用 D3D11VA（DirectX 视频加速）硬件加速。
+
+&nbsp;&nbsp;&nbsp;&nbsp;vaapi
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用 VAAPI（视频加速 API）硬件加速。
+
+&nbsp;&nbsp;&nbsp;&nbsp;qsv
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用 Intel QuickSync Video 加速进行视频转码。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;与大多数其他值不同，这个选项不会启用加速解码（当选择了 QSV 解码器时会自动使用），而是启用了无需将帧复制到系统内存的加速转码。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;为了使它工作，解码器和编码器都必须支持 QSV 加速，并且不能使用滤镜。
+
+&nbsp;&nbsp;&nbsp;&nbsp;如果选定的 hwaccel 不可用或所选解码器不支持，则此选项无效。
+
+&nbsp;&nbsp;&nbsp;&nbsp;请注意，大多数加速方法都是为了播放而设计的，在现代 CPU 上可能不会比软件解码更快。此外，`ffmpeg` 通常需要将解码后的帧从 GPU 内存复制到系统内存，导致进一步的性能损失。因此，这个选项主要用于测试。
+
+-hwaccel_device[:stream_specifier] hwaccel_device (输入, 按流)
+&nbsp;&nbsp;&nbsp;&nbsp;选择一个用于硬件加速的设备。
+
+&nbsp;&nbsp;&nbsp;&nbsp;只有当 -hwaccel 选项也被指定时才有意义。它可以引用通过 -init_hw_device 创建的现有设备的名称，或者它可以在调用前立即创建一个新设备，就像调用了 ‘-init_hw_device’ 类型:hwaccel_device 一样。
+
+-hwaccels
+&nbsp;&nbsp;&nbsp;&nbsp;列出此版本 FFmpeg 启用的所有硬件加速组件。实际运行时的可用性取决于硬件及其适当的驱动程序是否已安装。
+
+-fix_sub_duration_heartbeat[:stream_specifier]
+&nbsp;&nbsp;&nbsp;&nbsp;根据随机访问包接收时当前正在进行的字幕，按照特定输出视频流作为心跳流来分割并推送。
+
+&nbsp;&nbsp;&nbsp;&nbsp;这降低了那些结束包或下一个字幕尚未收到的字幕的延迟。缺点是这可能会导致字幕事件的重复，以覆盖整个持续时间，因此在字幕事件传递给输出的时间延迟无关紧要的情况下不应使用此选项。
+
+&nbsp;&nbsp;&nbsp;&nbsp;这需要为相关的输入字幕流设置了 -fix_sub_duration 才能生效，而且输入字幕流必须直接映射到包含心跳流的同一输出。
+
+### 5.7 Audio Options
