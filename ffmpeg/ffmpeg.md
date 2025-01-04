@@ -1958,3 +1958,789 @@ force_key_frames 可以接受以下形式的参数：
 &nbsp;&nbsp;&nbsp;&nbsp;这需要为相关的输入字幕流设置了 -fix_sub_duration 才能生效，而且输入字幕流必须直接映射到包含心跳流的同一输出。
 
 ### 5.7 Audio Options
+
+-aframes number (output)
+&nbsp;&nbsp;&nbsp;&nbsp;设置要输出的音频帧数。这是 `-frames:a` 的过时别名，建议使用 `-frames:a` 代替。
+
+-ar[:stream_specifier] freq (input/output,per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;设置音频采样频率。对于输出流，默认设置为相应输入流的频率。对于输入流，此选项仅对音频捕获设备和原始解复用器有意义，并映射到相应的解复用器选项。
+
+-aq q (output)
+&nbsp;&nbsp;&nbsp;&nbsp;设置音频质量（编解码器特定，VBR）。这是 -q:a 的别名。
+
+-ac[:stream_specifier] channels (input/output,per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;设置音频声道数。对于输出流，默认设置为输入音频声道的数量。对于输入流，此选项仅对音频捕获设备和原始解复用器有意义，并映射到相应的解复用器选项。
+
+-an (input/output)
+&nbsp;&nbsp;&nbsp;&nbsp;作为输入选项，阻止文件中的所有音频流被过滤或自动选择或映射到任何输出。参见 `-discard` 选项以单独禁用流。
+
+&nbsp;&nbsp;&nbsp;&nbsp;作为输出选项，禁用音频录制，即自动选择或映射任何音频流。对于完全的手动控制，请参阅 `-map` 选项。
+
+-acodec codec (input/output)
+&nbsp;&nbsp;&nbsp;&nbsp;设置音频编解码器。这是 `-codec:a` 的别名。
+
+-sample_fmt[:stream_specifier] sample_fmt (output,per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;设置音频样本格式。使用 `-sample_fmts` 获取支持的样本格式列表。
+
+-af filtergraph (output)
+&nbsp;&nbsp;&nbsp;&nbsp;创建由 filtergraph 描述的滤镜图并用它来过滤流。
+
+&nbsp;&nbsp;&nbsp;&nbsp;这是 `-filter:a` 的别名，详见 `-filter` 选项。
+
+### 5.8 Advanced Audio options
+
+-atag fourcc/tag (output)
+&nbsp;&nbsp;&nbsp;&nbsp;强制音频标签/fourcc。这是 `-tag:a` 的别名。
+
+-ch_layout[:stream_specifier] layout (input/output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;`-channel_layout` 的别名。
+
+-channel_layout[:stream_specifier] layout (input/output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;设置音频声道布局。对于 output streams，默认设置为输入声道布局。对于 input streams，它会覆盖输入的声道布局。并非所有解码器都会尊重被覆盖的声道布局。此选项还设置了音频捕获设备和原始解复用器的声道布局，并映射到相应的解复用器选项。
+
+-guess_layout_max channels (input, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;如果某些输入声道布局未知，则仅在声道数不超过指定数量时尝试猜测。例如，2 告诉 `ffmpeg` 将 1 个声道识别为单声道，将 2 个声道识别为立体声，但不会将 6 个声道识别为 5.1 声道。默认情况下是总是尝试猜测。使用 0 禁用所有猜测。使用 `-channel_layout` 选项显式指定输入布局也会禁用猜测。
+
+### 5.9 Subtitle options
+
+-scodec codec (input/output)
+&nbsp;&nbsp;&nbsp;&nbsp;设置字幕编解码器。这是 `-codec:s` 的别名。
+
+-sn (input/output)
+&nbsp;&nbsp;&nbsp;&nbsp;作为 input 选项，阻止文件中的所有字幕流被过滤或自动选择或映射到任何输出。参见 `-discard` 选项以单独禁用流。
+
+&nbsp;&nbsp;&nbsp;&nbsp;作为 output 选项，禁用字幕录制，即自动选择或映射任何字幕流。对于完全的手动控制，请参阅 `-map` 选项。
+
+### 5.10 Advanced Subtitle options
+
+-fix_sub_duration
+&nbsp;&nbsp;&nbsp;&nbsp;修复字幕持续时间。对于每个字幕，等待同一流中的下一个数据包，并调整第一个字幕的持续时间以避免重叠。这对于某些字幕编解码器（尤其是 DVB 字幕）是必要的，因为在原始数据包中的持续时间只是一个粗略的估计，实际结束是由一个空的字幕帧标记的。在必要时未能使用此选项可能导致持续时间过长或由于非单调的时间戳而导致复用失败。
+
+&nbsp;&nbsp;&nbsp;&nbsp;请注意，这个选项会延迟所有数据的输出，直到解码了下一个字幕数据包：它可能会显著增加内存消耗和延迟。
+
+-canvas_size size
+&nbsp;&nbsp;&nbsp;&nbsp;设置用于渲染字幕的画布大小。
+
+### 5.11 Advanced options
+
+-map [-]input_file_id[:stream_specifier][:view_specifier][:?] | [linklabel] (output)
+&nbsp;&nbsp;&nbsp;&nbsp;创建一个或多个输出文件中的流。此选项有两种形式来指定数据源：第一种是从某些输入文件（使用 `-i` 指定）中选择一个或多个流；第二种是采用复杂滤镜图（使用 `-filter_complex` 指定）的一个输出。
+
+&nbsp;&nbsp;&nbsp;&nbsp;在第一种形式中，为具有索引 input_file_id 的输入文件中的每个流创建一个输出流。如果给出了 stream_specifier，则仅使用匹配该说明符的流（有关 stream_specifier 语法，请参阅流说明符部分）。
+
+&nbsp;&nbsp;&nbsp;&nbsp;stream 标识符前的 `-` 字符创建“负”映射。它会禁用已经创建的映射中匹配的流。
+
+&nbsp;&nbsp;&nbsp;&nbsp;可选的 view_specifier 可能在 stream_specifier 之后给出，对于多视图视频指定要使用的视图。view specifier 可能有以下格式之一：
+
+&nbsp;&nbsp;&nbsp;&nbsp;view:view_id
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过其 ID 选择一个视图；view_id 可以设置为 'all' 以交错使用所有视图到一个流中；
+
+&nbsp;&nbsp;&nbsp;&nbsp;vidx:view_idx
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过其索引选择一个视图；即 0 是基础视图，1 是第一个非基础视图等。
+
+&nbsp;&nbsp;&nbsp;&nbsp;vpos:position
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过其显示位置选择一个视图；position 可以是 `left` 或 `right`。
+
+&nbsp;&nbsp;&nbsp;&nbsp;转码的默认行为是仅使用基础视图，即相当于 `vidx:0`。对于流复制，不支持视图说明符，并且总是复制所有视图。
+
+&nbsp;&nbsp;&nbsp;&nbsp;stream 索引后的尾随 `?` 使得映射可选：如果映射不匹配任何流，映射将被忽略而不是失败。请注意，如果使用了无效的输入文件索引，映射仍然会失败；例如，如果映射引用了一个不存在的输入。
+
+&nbsp;&nbsp;&nbsp;&nbsp;另一种 [linklabel] 形式将复杂滤镜图的输出（参见 -filter_complex 选项）映射到输出文件。linklabel 必须对应于图中定义的输出链接标签。
+
+&nbsp;&nbsp;&nbsp;&nbsp;此选项可以多次指定，每次都会向输出文件中添加更多流。任何给定的输入流也可以作为不同输出流的来源被映射任意次数，例如为了使用不同的编码选项和/或滤镜。这些流按照命令行上给出 `-map` 选项的顺序在输出中创建。
+
+&nbsp;&nbsp;&nbsp;&nbsp;使用此选项会禁用此输出文件的默认映射。
+
+&nbsp;&nbsp;&nbsp;&nbsp;示例：
+
+&nbsp;&nbsp;&nbsp;&nbsp;map everything
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将第一个输入文件的所有流映射到输出：
+```shell
+ffmpeg -i INPUT -map 0 output
+```
+&nbsp;&nbsp;&nbsp;&nbsp;select specific stream
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果有两个音频流在第一个输入文件中，这些流由 0:0 和 0:1 标识。可以使用 -map 来选择哪些流放入输出文件中。例如：
+```shell
+ffmpeg -i INPUT -map 0:1 out.wav
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将 INPUT 中第二个输入流映射到 out.wav 中的（单个）输出流。
+
+&nbsp;&nbsp;&nbsp;&nbsp;create multiple streams
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;从输入文件 a.mov（由标识符 0:2 指定）中选择索引为 2 的流，以及从 b.mov（由标识符 1:6 指定）中选择索引为 6 的流，并复制到输出文件 out.mov：
+```shell
+ffmpeg -i a.mov -i b.mov -c copy -map 0:2 -map 1:6 out.mov
+```
+&nbsp;&nbsp;&nbsp;&nbsp;create multiple streams 2
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择所有视频和第三个音频流：
+```shell
+ffmpeg -i INPUT -map 0:v -map 0:a:2 OUTPUT
+```
+&nbsp;&nbsp;&nbsp;&nbsp;negative map
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;映射所有流，除了第二个音频流，使用负映射：
+```shell
+ffmpeg -i INPUT -map 0 -map -0:a:1 OUTPUT
+```
+&nbsp;&nbsp;&nbsp;&nbsp;optional map
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;映射第一个输入的视频和音频流，并使用尾随的 ?，如果第一个输入中没有音频流则忽略音频映射：
+```shell
+ffmpeg -i INPUT -map 0:v -map 0:a? OUTPUT
+```
+&nbsp;&nbsp;&nbsp;&nbsp;map by language
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;选择英语音频流：
+```shell
+ffmpeg -i INPUT -map 0:m:language:eng OUTPUT
+```
+-ignore_unknown
+&nbsp;&nbsp;&nbsp;&nbsp;尝试复制未知类型的流时，忽略输入流而不是失败。
+
+-copy_unknown
+&nbsp;&nbsp;&nbsp;&nbsp;允许复制未知类型的输入流而不是在尝试复制此类流时失败。
+
+-map_metadata[:metadata_spec_out] infile[:metadata_spec_in] (output, per-metadata)
+&nbsp;&nbsp;&nbsp;&nbsp;从 infile 设置下一个输出文件的元数据信息。请注意这些是文件索引（从零开始），而不是文件名。可选的 metadata_spec_in/out 参数指定要复制哪些元数据。元数据说明符可以有以下形式：
+
+&nbsp;&nbsp;&nbsp;&nbsp;g
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;全局元数据，即适用于整个文件的元数据
+
+&nbsp;&nbsp;&nbsp;&nbsp;s[:stream_spec]
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;每流元数据。stream_spec 是如流说明符章节中所述的流说明符。在输入元数据说明符中，会从第一个匹配的流复制。在输出元数据说明符中，所有匹配的流都会被复制。
+
+&nbsp;&nbsp;&nbsp;&nbsp;c:chapter_index
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;每章节元数据。chapter_index 是基于零的章节索引。
+
+&nbsp;&nbsp;&nbsp;&nbsp;p:program_index
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;每节目元数据。program_index 是基于零的节目索引。
+
+&nbsp;&nbsp;&nbsp;&nbsp;如果省略了元数据说明符，默认为全局。
+
+&nbsp;&nbsp;&nbsp;&nbsp;默认情况下，全局元数据是从第一个输入文件复制的，每流和每章节元数据是随流/章节一起复制的。通过创建任何相关类型的映射来禁用这些默认映射。可以使用负数文件索引来创建一个虚拟映射，以仅禁用自动复制。
+
+&nbsp;&nbsp;&nbsp;&nbsp;例如，将输入文件的第一个流的元数据复制到输出文件的全局元数据：
+```shell
+ffmpeg -i in.ogg -map_metadata 0:s:0 out.mp3
+```
+&nbsp;&nbsp;&nbsp;&nbsp;反向操作，即将全局元数据复制到所有音频流：
+```shell
+ffmpeg -i in.mkv -map_metadata:s:a 0:g out.mkv
+```
+&nbsp;&nbsp;&nbsp;&nbsp;在这个例子中，简单的 `0` 也可以工作，因为默认假设为全局元数据。
+
+-map_chapters input_file_index (output)
+&nbsp;&nbsp;&nbsp;&nbsp;从具有索引 input_file_index 的输入文件复制章节到下一个输出文件。如果没有指定章节映射，则从至少有一个章节的第一个输入文件复制章节。使用负数文件索引以禁用任何章节复制。
+
+-benchmark (global)
+&nbsp;&nbsp;&nbsp;&nbsp;在编码结束时显示基准测试信息。显示实际、系统和用户时间以及最大内存消耗。并非所有系统都支持最大内存消耗，通常不支持时会显示为 0。
+
+-benchmark_all (global)
+&nbsp;&nbsp;&nbsp;&nbsp;在编码期间显示基准测试信息。显示各种步骤（音频/视频编码/解码）所使用的实际、系统和用户时间。
+
+-timelimit duration (global)
+&nbsp;&nbsp;&nbsp;&nbsp;在 ffmpeg 运行 CPU 用户时间 duration 秒后退出。
+
+-dump (global)
+&nbsp;&nbsp;&nbsp;&nbsp;将每个输入包转储到标准错误输出。
+
+-hex (global)
+&nbsp;&nbsp;&nbsp;&nbsp;在转储包时，也转储有效负载。
+
+-readrate speed (input)
+&nbsp;&nbsp;&nbsp;&nbsp;限制输入读取速度。
+
+&nbsp;&nbsp;&nbsp;&nbsp;其值是一个浮点正数，表示应在一秒实际时间内摄取的媒体的最大持续时间（以秒为单位）。默认值为零，表示不对摄取速度施加任何限制。值 `1` 表示实时速度，并等同于 `-re`。
+
+&nbsp;&nbsp;&nbsp;&nbsp;主要用于模拟捕获设备或直播输入流（例如从文件读取时）。当输入是实际的捕获设备或直播流时，不应使用低值，因为它可能导致丢包。
+
+&nbsp;&nbsp;&nbsp;&nbsp;当输出包的流速重要时（如直播流）非常有用。
+
+-re (input)
+&nbsp;&nbsp;&nbsp;&nbsp;以原生帧速率读取输入。这相当于设置 `-readrate 1`。
+
+-readrate_initial_burst seconds
+&nbsp;&nbsp;&nbsp;&nbsp;设置初始读取爆发时间，以秒为单位，在此之后将强制执行 -re/-readrate。
+
+-vsync parameter (global)
+-fps_mode[:stream_specifier] parameter (output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;设置视频同步方法/帧率模式。vsync 应用于所有输出视频流，但可以通过为特定流设置 fps_mode 来覆盖它。vsync 已被弃用，并将在未来移除。
+
+&nbsp;&nbsp;&nbsp;&nbsp;出于兼容性原因，vsync 的某些值可以以数字形式指定（在下表中以括号显示）。
+
+&nbsp;&nbsp;&nbsp;&nbsp;passthrough (0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;每个帧都从解复用器传递到复用器，保持其时间戳不变。
+
+&nbsp;&nbsp;&nbsp;&nbsp;cfr (1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过复制和丢弃帧来实现请求的确切恒定帧率。
+
+&nbsp;&nbsp;&nbsp;&nbsp;vfr (2)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧会带着它们的时间戳传递或被丢弃，以防止两个帧具有相同的时间戳。
+
+&nbsp;&nbsp;&nbsp;&nbsp;auto (-1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;根据复用器的能力选择 cfr 和 vfr 之一。这是默认方法。
+
+&nbsp;&nbsp;&nbsp;&nbsp;请注意，时间戳可能会进一步被复用器修改。例如，在启用格式选项 avoid_negative_ts 的情况下。
+
+&nbsp;&nbsp;&nbsp;&nbsp;使用 -map 可以选择从哪个流获取时间戳。您可以保留视频或音频中的一个不变，并将其他流同步到未更改的那个。
+
+-frame_drop_threshold parameter
+&nbsp;&nbsp;&nbsp;&nbsp;帧丢弃阈值，指定了视频帧可以在多大程度上滞后才会被丢弃。以帧率为单位，所以 1.0 表示一帧。默认值是 -1.1。一个可能的应用场景是在时间戳有噪声的情况下避免帧丢弃，或者在时间戳精确的情况下提高帧丢弃的精度。
+
+-apad parameters (output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;填充输出音频流。这相当于应用 `-af apad`。参数是一个由与 `apad` 滤镜相同的参数组成的字符串。要使此选项生效，必须为此输出设置 `-shortest`。
+
+-copyts
+&nbsp;&nbsp;&nbsp;&nbsp;不处理输入时间戳，而是保留它们的值而不尝试进行清理。特别是，不会移除初始开始时间偏移值。
+
+&nbsp;&nbsp;&nbsp;&nbsp;请注意，即使选择了此选项，由于 vsync 选项或特定复用器处理（例如，在启用格式选项 avoid_negative_ts 的情况下），输出时间戳也可能与输入时间戳不匹配。
+
+-start_at_zero
+&nbsp;&nbsp;&nbsp;&nbsp;当与 copyts 一起使用时，将输入时间戳调整为从零开始。
+
+&nbsp;&nbsp;&nbsp;&nbsp;这意味着，例如使用 `-ss 50` 将使输出时间戳从 50 秒开始，无论输入文件从什么时间戳开始。
+
+-copytb mode
+&nbsp;&nbsp;&nbsp;&nbsp;指定在流复制时如何设置编码器的时间基。mode 是一个整数值，可以取以下值之一：
+
+&nbsp;&nbsp;&nbsp;&nbsp;1
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用解复用器的时间基。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;时间基从相应的输入解复用器复制到输出编码器。有时需要这样做以避免在复制具有可变帧率的视频流时产生非单调递增的时间戳。
+
+&nbsp;&nbsp;&nbsp;&nbsp;0
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用解码器的时间基。
+
+&nbsp;&nbsp;&nbsp;&nbsp;时间基从相应的输入解码器复制到输出编码器。
+
+&nbsp;&nbsp;&nbsp;&nbsp;-1
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;尝试自动选择，以便生成合理的输出。
+
+&nbsp;&nbsp;&nbsp;&nbsp;默认值是 -1。
+
+-enc_time_base[:stream_specifier] timebase (output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;设置编码器时间基。timebase 可以取以下值之一：
+
+&nbsp;&nbsp;&nbsp;&nbsp;0
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;根据媒体类型分配默认值。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;对于视频 - 使用 1/帧率，对于音频 - 使用 1/采样率。
+
+&nbsp;&nbsp;&nbsp;&nbsp;demux
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用解复用器的时间基。
+
+&nbsp;&nbsp;&nbsp;&nbsp;filter
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用滤镜图的时间基。
+
+&nbsp;&nbsp;&nbsp;&nbsp;a positive number
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用提供的数字作为时间基。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;此字段可以表示为两个整数的比例（例如 1:24, 1:48000）或小数（例如 0.04166, 2.0833e-5）。
+
+&nbsp;&nbsp;&nbsp;&nbsp;默认值是 0。
+
+-bitexact (input/output)
+&nbsp;&nbsp;&nbsp;&nbsp;启用比特精确模式用于（解）复用器和（解/编）码器。
+
+-shortest (output)
+&nbsp;&nbsp;&nbsp;&nbsp;当最短的输出流结束时完成编码。
+
+&nbsp;&nbsp;&nbsp;&nbsp;请注意，此选项可能需要缓冲帧，这会引入额外的延迟。可以通过 -shortest_buf_duration 选项控制此延迟的最大量。
+
+-shortest_buf_duration duration (output)
+&nbsp;&nbsp;&nbsp;&nbsp;当至少有一个流是“稀疏”的（即帧之间有较大间隔——这通常是字幕的情况）时，`-shortest` 选项可能需要缓冲潜在的大量数据。
+
+&nbsp;&nbsp;&nbsp;&nbsp;此选项控制缓冲帧的最大持续时间（以秒为单位）。较大的值可能允许 `-shortest` 选项产生更准确的结果，但会增加内存使用和延迟。
+
+&nbsp;&nbsp;&nbsp;&nbsp;默认值是 10 秒。
+
+-dts_delta_threshold threshold
+&nbsp;&nbsp;&nbsp;&nbsp;时间戳不连续性差值阈值，表示为秒的小数值。
+
+&nbsp;&nbsp;&nbsp;&nbsp;由这个选项启用的时间戳不连续性校正仅应用于接受时间戳不连续性的输入格式（对于这些格式启用了 `AVFMT_TS_DISCONT` 标志），例如 MPEG-TS 和 HLS，并且在使用 `-copyts` 选项时自动禁用（除非检测到环绕）。
+
+&nbsp;&nbsp;&nbsp;&nbsp;如果检测到绝对值大于阈值的时间戳不连续性，ffmpeg 将通过减去/加上相应的 delta 值来移除不连续性。
+
+&nbsp;&nbsp;&nbsp;&nbsp;默认值是 10。
+
+-dts_error_threshold threshold
+&nbsp;&nbsp;&nbsp;&nbsp;时间戳错误差值阈值，表示为秒的小数值。
+
+&nbsp;&nbsp;&nbsp;&nbsp;由这个选项启用的时间戳校正仅应用于不接受时间戳不连续性的输入格式（对于这些格式未启用 `AVFMT_TS_DISCONT` 标志）。
+
+&nbsp;&nbsp;&nbsp;&nbsp;如果检测到绝对值大于阈值的时间戳不连续性，ffmpeg 将丢弃 PTS/DTS 时间戳值。
+
+&nbsp;&nbsp;&nbsp;&nbsp;默认值是 `3600*30`（30 小时），这是任意选择且相当保守的。
+
+-muxdelay seconds (output)
+&nbsp;&nbsp;&nbsp;&nbsp;设置最大的解复用-解码延迟。
+
+-muxpreload seconds (output)
+&nbsp;&nbsp;&nbsp;&nbsp;设置初始的解复用-解码延迟。
+
+-streamid output-stream-index:new-value (output)
+&nbsp;&nbsp;&nbsp;&nbsp;为输出流分配一个新的流ID值。此选项应在适用的输出文件名之前指定。在存在多个输出文件的情况下，可以将流ID重新分配给不同的值。
+
+&nbsp;&nbsp;&nbsp;&nbsp;例如，要将输出 mpegts 文件中的流 0 PID 设置为 33 和流 1 PID 设置为 36：
+```shell
+ffmpeg -i inurl -streamid 0:33 -streamid 1:36 out.ts
+```
+
+-bsf[:stream_specifier] bitstream_filters (input/output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;对匹配的流应用比特流滤镜。这些滤镜在从解复用器接收每个数据包时（作为输入选项使用）或在发送到复用器之前（作为输出选项使用）应用于每个数据包。
+
+&nbsp;&nbsp;&nbsp;&nbsp;bitstream_filters 是以逗号分隔的比特流滤镜规范列表，每个规范的形式如下：
+```shell
+filter[=optname0=optval0:optname1=optval1:...]
+```
+&nbsp;&nbsp;&nbsp;&nbsp;需要成为选项值一部分的任何 ‘,=:’ 字符需要用反斜杠转义。
+
+&nbsp;&nbsp;&nbsp;&nbsp;使用 `-bsfs` 选项获取比特流滤镜列表。
+
+&nbsp;&nbsp;&nbsp;&nbsp;例如：
+```shell
+ffmpeg -bsf:v h264_mp4toannexb -i h264.mp4 -c:v copy -an out.h264
+```
+&nbsp;&nbsp;&nbsp;&nbsp;将 `h264_mp4toannexb` 比特流滤镜（它将 MP4 封装的 H.264 流转换为附录 B 格式）应用于输入视频流。
+
+&nbsp;&nbsp;&nbsp;&nbsp;另一方面，
+```shell
+ffmpeg -i file.mov -an -vn -bsf:s mov2textsub -c:s copy -f rawvideo sub.txt
+```
+&nbsp;&nbsp;&nbsp;&nbsp;将 `mov2textsub` 比特流滤镜（它从 MOV 字幕中提取文本）应用于输出字幕流。但是请注意，由于两个示例都使用了 `-c copy`，因此滤镜是在输入还是输出应用影响不大——如果发生了转码则会有所不同。
+
+-tag[:stream_specifier] codec_tag (input/output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;为匹配的流强制指定一个标签/fourcc。
+
+-timecode hh:mm:ssSEPff
+&nbsp;&nbsp;&nbsp;&nbsp;指定用于写入的时间码。SEP 在非丢帧时间码时是 ‘:’，而在丢帧时是 ‘;’（或 ‘.’）。
+```shell
+ffmpeg -i input.mpg -timecode 01:02:03.04 -r 30000/1001 -s ntsc output.mpg
+```
+
+-filter_complex filtergraph (global)
+&nbsp;&nbsp;&nbsp;&nbsp;定义一个复杂滤镜图，即具有任意数量输入和/或输出的滤镜图。对于简单滤镜图（即那些具有一个输入和一个输出且类型相同的情况），请参阅 -filter 选项。filtergraph 是对滤镜图的描述，如 ffmpeg-filters 手册中“滤镜图语法”部分所述。此选项可以多次指定——每次使用都会创建一个新的复杂滤镜图。
+
+&nbsp;&nbsp;&nbsp;&nbsp;复杂滤镜图的输入可能来自不同的源类型，通过相应链接标签的格式加以区分：
+
+- 要连接输入流，请使用 [file_index:stream_specifier]（即与 -map 相同的语法）。如果 stream_specifier 匹配多个流，则使用第一个匹配的流。对于多视图视频，流说明符后面可以跟随视图说明符，详见 -map 选项文档中的语法。
+- 要连接回环解码器，请使用 [dec:dec_idx]，其中 dec_idx 是要连接给定输入的回环解码器索引。对于多视图视频，解码器索引后面可以跟随视图说明符，详见 -map 选项文档中的语法。
+- 要连接另一个复杂滤镜图的输出，请使用其链接标签。例如，以下示例：
+    ```shell
+    ffmpeg -i input.mkv \
+    -filter_complex '[0:v]scale=size=hd1080,split=outputs=2[for_enc][orig_scaled]' \
+    -c:v libx264 -map '[for_enc]' output.mkv \
+    -dec 0:0 \
+    -filter_complex '[dec:0][orig_scaled]hstack[stacked]' \
+    -map '[stacked]' -c:v ffv1 comparison.mkv
+    ```
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;读取输入视频并
+
+    - （第2行）使用一个具有一个输入和两个输出的复杂滤镜图将视频缩放到1920x1080，并将结果复制到两个输出；
+    - （第3行）使用 `libx264` 编码一个已缩放的输出，并将结果写入 output.mkv；
+    - （第4行）使用回环解码器解码该编码的流；
+    - （第5行）将回环解码器的输出（即 `libx264` 编码的视频）与原始缩放后的输入并排放置；
+    - （第6行）然后将组合的视频无损编码并写入 comparison.mkv。
+    请注意，由于转码管道中存在循环（滤镜图输出去编码，从那里解码，再回到同一个图），这两个滤镜图不能合并成一个，这是不允许的。
+
+&nbsp;&nbsp;&nbsp;&nbsp;未标记的输入将被连接到第一个未使用的匹配类型的输入流。
+
+&nbsp;&nbsp;&nbsp;&nbsp;输出链接标签用 -map 引用。未标记的输出将被添加到第一个输出文件。
+
+&nbsp;&nbsp;&nbsp;&nbsp;请注意，使用此选项可以在没有正常输入文件的情况下仅使用 lavfi 源。
+
+&nbsp;&nbsp;&nbsp;&nbsp;例如，要将图像叠加在视频上：
+```shell
+ffmpeg -i video.mkv -i image.png -filter_complex '[0:v][1:v]overlay[out]' -map
+'[out]' out.mkv
+```
+&nbsp;&nbsp;&nbsp;&nbsp;这里 `[0:v]` 指向第一个输入文件中的第一个视频流，它连接到 overlay 滤镜的第一个（主）输入。同样地，第二个输入中的第一个视频流连接到 overlay 的第二个（叠加）输入。
+
+&nbsp;&nbsp;&nbsp;&nbsp;假设每个输入文件中只有一个视频流，我们可以省略输入标签，因此上述命令等价于：
+```shell
+ffmpeg -i video.mkv -i image.png -filter_complex 'overlay[out]' -map
+'[out]' out.mkv
+```
+&nbsp;&nbsp;&nbsp;&nbsp;此外，我们可以省略输出标签，滤镜图的单个输出将自动添加到输出文件，所以我们只需写：
+```shell
+ffmpeg -i video.mkv -i image.png -filter_complex 'overlay' out.mkv
+```
+&nbsp;&nbsp;&nbsp;&nbsp;作为特殊情况，您可以使用位图字幕流作为输入：它将被转换为与文件中最大的视频相同大小的视频，如果没有视频则为 720x576。请注意，这是一个实验性和临时性的解决方案。一旦 libavfilter 对字幕有适当支持，这个特性将被移除。
+
+&nbsp;&nbsp;&nbsp;&nbsp;例如，为了将字幕硬编码到顶部，延迟1秒的 DVB-T 录像（存储在 MPEG-TS 格式中）：
+```shell
+ffmpeg -i input.ts -filter_complex \
+  '[#0x2ef] setpts=PTS+1/TB [sub] ; [#0x2d0] [sub] overlay' \
+  -sn -map '#0x2dc' output.mkv
+```
+&nbsp;&nbsp;&nbsp;&nbsp;(0x2d0、0x2dc 和 0x2ef 分别是视频、音频和字幕流的 MPEG-TS PID；0:0、0:3 和 0:7 也可以工作)
+
+&nbsp;&nbsp;&nbsp;&nbsp;为了使用 lavfi `color` 源生成5秒纯红色视频：
+```shell
+ffmpeg -filter_complex 'color=c=red' -t 5 out.mkv
+```
+
+-filter_complex_threads nb_threads (global)
+&nbsp;&nbsp;&nbsp;&nbsp;定义用于处理 -filter_complex 图的线程数。类似于 filter_threads 但仅用于 `-filter_complex` 图。默认值是可用的CPU数量。
+
+-lavfi filtergraph (global)
+&nbsp;&nbsp;&nbsp;&nbsp;定义一个复杂滤镜图，即具有任意数量输入和/或输出的滤镜图。等价于 -filter_complex。
+
+-accurate_seek (input)
+&nbsp;&nbsp;&nbsp;&nbsp;此选项启用或禁用使用 -ss 选项时在输入文件中的精确查找功能。默认是启用的，所以在转码时查找是精确的。使用 -noaccurate_seek 禁用它，这可能在复制一些流并转码其他流时有用。
+
+-seek_timestamp (input)
+&nbsp;&nbsp;&nbsp;&nbsp;此选项启用或禁用使用 -ss 选项时在输入文件中按时间戳查找的功能。默认是禁用的。如果启用，-ss 选项的参数将被视为实际的时间戳，并不会被文件的开始时间所偏移。这对于不从时间戳0开始的文件（如传输流）很重要。
+
+-thread_queue_size size (input/output)
+&nbsp;&nbsp;&nbsp;&nbsp;对于输入，此选项设置从文件或设备读取时的最大排队数据包数量。对于低延迟/高频率的直播流，如果数据包未能及时读取可能会被丢弃；设置这个值可以强制 ffmpeg 使用单独的输入线程并在数据包到达时立即读取。默认情况下，ffmpeg 仅在指定了多个输入时这样做。
+
+&nbsp;&nbsp;&nbsp;&nbsp;对于输出，此选项指定可以排队到每个复用线程的最大数据包数量。
+
+-sdp_file file (global)
+&nbsp;&nbsp;&nbsp;&nbsp;将 SDP 信息打印到文件，针对输出流。这允许在至少一个输出不是 RTP 流的情况下转储 SDP 信息。（需要至少一个输出格式为 RTP）。
+
+-discard (input)
+&nbsp;&nbsp;&nbsp;&nbsp;允许丢弃特定的流或流中的帧。任何输入流都可以完全丢弃，使用值 `all`；而选择性地丢弃流中的帧发生在解复用器阶段，并不是所有解复用器都支持。
+
+&nbsp;&nbsp;&nbsp;&nbsp;none
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不丢弃任何帧。
+
+&nbsp;&nbsp;&nbsp;&nbsp;default
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;默认，不丢弃任何帧。
+
+&nbsp;&nbsp;&nbsp;&nbsp;noref
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;丢弃所有非参考帧。
+
+&nbsp;&nbsp;&nbsp;&nbsp;bidir
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;丢弃所有双向帧。
+
+&nbsp;&nbsp;&nbsp;&nbsp;nokey
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;除关键帧外丢弃所有帧。
+
+&nbsp;&nbsp;&nbsp;&nbsp;all
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;丢弃所有帧。
+
+-abort_on flags (global)
+&nbsp;&nbsp;&nbsp;&nbsp;在各种条件下停止并中止。可用的标志有：
+
+&nbsp;&nbsp;&nbsp;&nbsp;empty_output
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;没有数据包传递给复用器，输出为空。
+
+&nbsp;&nbsp;&nbsp;&nbsp;empty_output_stream
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在某些输出流中没有数据包传递给复用器。
+
+-max_error_rate (global)
+&nbsp;&nbsp;&nbsp;&nbsp;设置跨所有输入的解码帧失败比例，当超过此比例时 ffmpeg 将返回退出代码69。超过这个阈值并不会终止处理。范围是一个介于0到1之间的浮点数，默认值是2/3。
+
+-xerror (global)
+&nbsp;&nbsp;&nbsp;&nbsp;遇到错误时停止并退出。
+
+-max_muxing_queue_size packets (output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;在转码音频和/或视频流时，ffmpeg 不会在每个这样的流都有一个数据包之前开始写入输出。等待期间，其他流的数据包会被缓冲。此选项设置匹配输出流的该缓冲区大小，以数据包为单位。
+
+&nbsp;&nbsp;&nbsp;&nbsp;此选项的默认值对于大多数用途来说已经足够大，因此只有在确定需要时才应更改此选项。
+
+-muxing_queue_data_threshold bytes (output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;这是直到哪个最小阈值为止复用队列大小不被考虑。默认每流50兆字节，并基于传递给复用器的数据包的整体大小。
+
+-auto_conversion_filters (global)
+&nbsp;&nbsp;&nbsp;&nbsp;在所有滤镜图中自动插入格式转换滤镜，包括由 -vf、-af、-filter_complex 和 -lavfi 定义的那些。如果滤镜格式协商需要转换，则滤镜初始化将会失败。仍然可以通过在图中插入相应的转换滤镜（scale、aresample）来进行转换。默认是开启的，要明确禁用它，你需要指定 -noauto_conversion_filters。
+
+-bits_per_raw_sample[:stream_specifier] value (output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;声明给定输出流的原始样本位数为 value。请注意，此选项设置的是提供给编码器/复用器的信息，它不会改变流以符合这个值。设置与流属性不匹配的值可能导致编码失败或无效的输出文件。
+
+-stats_enc_pre[:stream_specifier] path (output, per-stream)
+-stats_enc_post[:stream_specifier] path (output, per-stream)
+-stats_mux_pre[:stream_specifier] path (output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;将匹配流的每帧编码信息写入由 path 指定的文件。
+
+&nbsp;&nbsp;&nbsp;&nbsp;-stats_enc_pre 写入关于原始视频或音频帧的信息，这些帧即将被发送进行编码；而 -stats_enc_post 写入关于从编码器接收到的已编码数据包的信息。-stats_mux_pre 写入关于即将发送到复用器的数据包的信息。每个帧或数据包在指定文件中产生一行。此行的格式由 -stats_enc_pre_fmt / -stats_enc_post_fmt / -stats_mux_pre_fmt 控制。
+
+&nbsp;&nbsp;&nbsp;&nbsp;当多个流的统计信息写入同一个文件时，不同流对应的行将会交错。这种交错的确切顺序未作规定，并且不能保证在程序的不同调用之间保持稳定，即使使用相同的选项也是如此。
+
+-stats_enc_pre_fmt[:stream_specifier] format_spec (output, per-stream)
+-stats_enc_post_fmt[:stream_specifier] format_spec (output, per-stream)
+-stats_mux_pre_fmt[:stream_specifier] format_spec (output, per-stream)
+&nbsp;&nbsp;&nbsp;&nbsp;指定与 -stats_enc_pre / -stats_enc_post / -stats_mux_pre 一起写入的行的格式。
+
+&nbsp;&nbsp;&nbsp;&nbsp;format_spec 是一个可能包含形式为 {fmt} 的指令的字符串。format_spec 使用反斜杠转义——分别使用 \{, \}, 和 \\ 在输出中写入实际的 {, }, 或 \。
+
+&nbsp;&nbsp;&nbsp;&nbsp;给出的 fmt 指令可以是以下之一：
+
+&nbsp;&nbsp;&nbsp;&nbsp;fidx
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;输出文件的索引。
+
+&nbsp;&nbsp;&nbsp;&nbsp;sidx
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;文件中输出流的索引。
+
+&nbsp;&nbsp;&nbsp;&nbsp;n
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧号。编码前：到目前为止发送给编码器的帧数。编码后：到目前为止从编码器接收的数据包数。复用：到目前为止为此流提交给复用器的数据包数。
+
+&nbsp;&nbsp;&nbsp;&nbsp;ni
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;输入帧号。对应于此输出帧或数据包的输入帧（即解码器输出）的索引。如果不可用则为 -1。
+
+&nbsp;&nbsp;&nbsp;&nbsp;tb
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;表示该帧/数据包的时间戳的时间基，作为有理数 num/den。请注意，编码器和复用器可能会使用不同的时间基。
+
+&nbsp;&nbsp;&nbsp;&nbsp;tbi
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ptsi 的时间基，作为有理数 num/den。当 ptsi 可用时可用，否则为 0/1。
+
+&nbsp;&nbsp;&nbsp;&nbsp;pts
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧或数据包的显示时间戳，以整数表示。应乘以时间基以计算显示时间。
+
+&nbsp;&nbsp;&nbsp;&nbsp;ptsi
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;输入帧（见 ni）的显示时间戳，以整数表示。应乘以 tbi 以计算显示时间。不可用时打印为 (2^63 - 1 = 9223372036854775807)。
+
+&nbsp;&nbsp;&nbsp;&nbsp;t
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧或数据包的显示时间，以十进制数表示。等于 pts 乘以 tb。
+
+&nbsp;&nbsp;&nbsp;&nbsp;ti
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;输入帧（见 ni）的显示时间，以十进制数表示。等于 ptsi 乘以 tbi。不可用时打印为 inf。
+
+&nbsp;&nbsp;&nbsp;&nbsp;dts (packet)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据包的解码时间戳，以整数表示。应乘以时间基以计算显示时间。
+
+&nbsp;&nbsp;&nbsp;&nbsp;dt (packet)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧或数据包的解码时间，以十进制数表示。等于 dts 乘以 tb。
+
+&nbsp;&nbsp;&nbsp;&nbsp;sn (frame, audio)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;到目前为止发送给编码器的音频样本数。
+
+&nbsp;&nbsp;&nbsp;&nbsp;samp (frame, audio)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧中的音频样本数。
+
+&nbsp;&nbsp;&nbsp;&nbsp;size (packet)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;编码后的数据包大小，以字节为单位。
+
+&nbsp;&nbsp;&nbsp;&nbsp;br (packet)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当前比特率，以每秒比特数表示。
+
+&nbsp;&nbsp;&nbsp;&nbsp;abr (packet)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;到目前为止整个流的平均比特率，以每秒比特数表示，如果此时无法确定则为 -1。
+
+&nbsp;&nbsp;&nbsp;&nbsp;key (packet)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果数据包包含关键帧，则字符为 ‘K’，否则为 ‘N’。
+
+&nbsp;&nbsp;&nbsp;&nbsp;标记为 packet 的指令只能与 -stats_enc_post_fmt 和 -stats_mux_pre_fmt 一起使用。
+
+&nbsp;&nbsp;&nbsp;&nbsp;标记为 frame 的指令只能与 -stats_enc_pre_fmt 一起使用。
+
+&nbsp;&nbsp;&nbsp;&nbsp;标记为 audio 的指令只能用于音频流。
+
+&nbsp;&nbsp;&nbsp;&nbsp;默认的格式字符串是：
+
+&nbsp;&nbsp;&nbsp;&nbsp;pre-encoding
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{fidx} {sidx} {n} {t}
+
+&nbsp;&nbsp;&nbsp;&nbsp;post-encoding
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{fidx} {sidx} {n} {t}
+
+&nbsp;&nbsp;&nbsp;&nbsp;将来，新项可能会添加到默认格式化字符串的末尾。依赖于格式完全不变的用户应该手动指定格式。
+
+&nbsp;&nbsp;&nbsp;&nbsp;注意，写入同一文件的不同流的统计信息可能有不同的格式。
+
+### 5.12 Preset files
+
+预设文件包含一系列 option=value 对，每个选项占一行，指定了在命令行上指定可能较为复杂的选项序列。以井号（'#'）字符开头的行被忽略，用于提供注释。可以在 FFmpeg 源树中的预设目录检查示例。
+
+预设文件有两种类型：ffpreset 和 avpreset 文件。
+
+#### 5.12.1 ffpreset files
+
+ffpreset 文件可以通过 `vpre`（视频预设）、`apre`（音频预设）、`spre`（字幕预设）和 `fpre`（通用预设）选项来指定。`fpre` 选项接受预设文件名作为输入，而不是预设名称，并且可以用于任何类型的编解码器。对于 `vpre`、`apre` 和 `spre` 选项，预设文件中指定的选项将应用于当前选定的与预设选项类型相同的编解码器。
+
+传递给 `vpre`、`apre` 和 `spre` 预设选项的参数根据以下规则确定要使用的预设文件：
+
+首先，FFmpeg 会按照顺序在 $FFMPEG_DATADIR（如果已设置）、$HOME/.ffmpeg 和配置时定义的数据目录（通常是 PREFIX/share/ffmpeg）或在 win32 上与可执行文件一起的 ffpresets 文件夹中搜索名为 arg.ffpreset 的文件。例如，如果参数是 `libvpx-1080p`，则它将搜索名为 libvpx-1080p.ffpreset 的文件。
+
+如果没有找到这样的文件，那么 FFmpeg 将在上述目录中搜索名为 codec_name-arg.ffpreset 的文件，其中 codec_name 是将应用预设文件选项的编解码器名称。例如，如果您使用 `-vcodec libvpx` 选择视频编解码器并使用 `-vpre 1080p`，则它将搜索名为 libvpx-1080p.ffpreset 的文件。
+
+#### 5.12.2 avpreset files
+
+avpreset 文件通过 `pre` 选项来指定。它们的工作方式类似于 ffpreset 文件，但仅允许特定于编码器的选项。因此，指定编码器的 option=value 对是不允许的。
+
+当指定了 `pre` 选项时，FFmpeg 将按照顺序在 $AVCONV_DATADIR（如果已设置）、$HOME/.avconv 和配置时定义的数据目录（通常是 PREFIX/share/ffmpeg）中查找带有 .avpreset 后缀的文件。
+
+首先，FFmpeg 会在上述目录中搜索名为 codec_name-arg.avpreset 的文件，其中 codec_name 是将应用预设文件选项的编解码器名称。例如，如果您使用 `-vcodec libvpx` 选择视频编解码器并使用 `-pre 1080p`，则它将搜索名为 libvpx-1080p.avpreset 的文件。
+
+如果没有找到这样的文件，那么 FFmpeg 将在同一目录中搜索名为 arg.avpreset 的文件。
+
+### 5.13 vstats file format
+
+`-vstats` 和 `-vstats_file` 选项启用生成包含关于生成的视频输出统计信息的文件。
+
+`-vstats_version` 选项控制生成文件的格式版本。
+
+对于版本`1`，格式如下：
+```shell
+frame= FRAME q= FRAME_QUALITY PSNR= PSNR f_size= FRAME_SIZE s_size= STREAM_SIZEkB time= TIMESTAMP br= BITRATEkbits/s avg_br= AVERAGE_BITRATEkbits/s
+```
+对于版本`2`，格式如下：
+```shell
+out= OUT_FILE_INDEX st= OUT_FILE_STREAM_INDEX frame= FRAME_NUMBER q= FRAME_QUALITYf PSNR= PSNR f_size= FRAME_SIZE s_size= STREAM_SIZEkB time= TIMESTAMP br= BITRATEkbits/s avg_br= AVERAGE_BITRATEkbits/s
+```
+每个键对应的值描述如下：
+
+avg_br
+&nbsp;&nbsp;&nbsp;&nbsp;平均比特率，以 Kbits/s 表示
+
+br
+&nbsp;&nbsp;&nbsp;&nbsp;比特率，以 Kbits/s 表示
+
+frame
+&nbsp;&nbsp;&nbsp;&nbsp;已编码帧的数量（版本1）或帧编号（版本2）
+
+out
+&nbsp;&nbsp;&nbsp;&nbsp;输出文件索引（仅版本2）
+
+PSNR
+&nbsp;&nbsp;&nbsp;&nbsp;峰值信噪比
+
+q
+&nbsp;&nbsp;&nbsp;&nbsp;帧的质量
+
+f_size
+&nbsp;&nbsp;&nbsp;&nbsp;已编码数据包大小，以字节数表示
+
+s_size
+&nbsp;&nbsp;&nbsp;&nbsp;流大小，以 KiB 表示
+
+st
+&nbsp;&nbsp;&nbsp;&nbsp;输出流索引（仅版本2）
+
+time
+&nbsp;&nbsp;&nbsp;&nbsp;数据包的时间
+
+type
+&nbsp;&nbsp;&nbsp;&nbsp;图像类型（注：在提供的格式中未提及，但通常也是 vstats 的一部分）
+
+另请参见 -stats_enc 选项，以获取显示编码统计信息的另一种方式。
+
+## 6 Examples
+
+### 6.1 Video and Audio grabbing
+
+如果您指定了输入格式和设备，则 ffmpeg 可以直接抓取视频和音频。
+```shell
+ffmpeg -f oss -i /dev/dsp -f video4linux2 -i /dev/video0 /tmp/out.mpg
+```
+或者使用 ALSA（Advanced Linux Sound Architecture）音频源（单声道输入，声卡 ID 为 1）代替 OSS：
+```shell
+ffmpeg -f alsa -ac 1 -i hw:1 -f video4linux2 -i /dev/video0 /tmp/out.mpg
+```
+请注意，在用任何电视查看器（如 Gerd Knorr 开发的 xawtv）启动 ffmpeg 之前，您必须激活正确的视频源和频道。您还需要使用标准混音器正确设置音频录制级别。
+
+### 6.2 X11 grabbing
+
+通过 FFmpeg 使用 X11grab 捕获 X11 显示：
+```shell
+ffmpeg -f x11grab -video_size cif -framerate 25 -i :0.0 /tmp/out.mpg
+```
+这里的 `:0.0` 是您的 X11 服务器的显示.屏幕编号，与 DISPLAY 环境变量相同。
+
+```shell
+ffmpeg -f x11grab -video_size cif -framerate 25 -i :0.0+10,20 /tmp/out.mpg
+```
+这里的 `:0.0` 同样是您的 X11 服务器的显示.屏幕编号。`10` 是 x 偏移量，而 `20` 是 y 偏移量，用于确定捕获区域的起始点。
+
+### 6.3 Video and Audio file format conversion
+
+任何支持的文件格式和协议都可以作为 ffmpeg 的输入：
+
+示例：
+
+- 您可以使用 YUV 文件作为输入：
+    ```shell
+    ffmpeg -i /tmp/test%d.Y /tmp/out.mpg
+    ```
+    这将使用以下文件：
+    ```shell
+    /tmp/test0.Y, /tmp/test0.U, /tmp/test0.V,
+    /tmp/test1.Y, /tmp/test1.U, /tmp/test1.V 等...
+    ```
+    Y 文件的分辨率是 U 和 V 文件的两倍。它们是原始文件，没有头部信息。这些文件可以由所有优秀的视频解码器生成。如果 FFmpeg 无法猜测图像大小，您必须使用 `-s` 选项指定图像大小。
+
+- 您可以从原始 YUV420P 文件中输入：
+    ```shell
+    ffmpeg -i /tmp/test.yuv /tmp/out.avi
+    ```
+    test.yuv 是一个包含原始 YUV 平面数据的文件。每个帧由 Y 平面组成，后面跟着水平和垂直分辨率减半的 U 和 V 平面。
+
+- 您可以输出到原始 YUV420P 文件：
+    ```shell
+    ffmpeg -i mydivx.avi hugefile.yuv
+    ```
+
+- 您可以设置多个输入文件和输出文件：
+    ```shell
+    ffmpeg -i /tmp/a.wav -s 640x480 -i /tmp/a.yuv /tmp/a.mpg
+    ```
+    将音频文件 a.wav 和原始 YUV 视频文件 a.yuv 转换为 MPEG 文件 a.mpg。
+
+- 您也可以同时进行音频和视频转换：
+    ```shell
+    ffmpeg -i /tmp/a.wav -ar 22050 /tmp/a.mp2
+    ```
+    将 a.wav 转换为采样率为 22050 Hz 的 MPEG 音频。
+
+- 您可以同时编码为多种格式，并定义输入流到输出流的映射：
+    ```shell
+    ffmpeg -i /tmp/a.wav -map 0:a -b:a 64k /tmp/a.mp2 -map 0:a -b:a 128k /tmp/b.mp2
+    ```
+    将 a.wav 转换为 a.mp2（64 kbit/s）和 b.mp2（128 kbit/s）。`-map file:index` 指定哪个输入流用于每个输出流，按输出流定义的顺序。
+
+- 您可以转码解密的 VOB 文件：
+    ```shell
+    ffmpeg -i snatch_1.vob -f avi -c:v mpeg4 -b:v 800k -g 300 -bf 2 -c:a libmp3lame -b:a 128k snatch.avi
+    ```
+    这是一个典型的 DVD 撕取示例；输入是一个 VOB 文件，输出是一个具有 MPEG-4 视频和 MP3 音频的 AVI 文件。注意，在这个命令中我们使用 B 帧使 MPEG-4 流兼容 DivX5，并且 GOP 大小为 300，这意味着对于 29.97 fps 的输入视频每 10 秒有一个 I 帧。此外，音频流被 MP3 编码，因此需要通过传递 `--enable-libmp3lame` 给 configure 来启用 LAME 支持。映射对于从 DVD 转码以获取所需的音频语言特别有用。
+
+注意：要查看支持的输入格式，请使用 `ffmpeg -demuxers`。
+
+- 您可以从视频中提取图像，或从许多图像创建视频：
+
+    对于从视频中提取图像：
+    ```shell
+    ffmpeg -i foo.avi -r 1 -s WxH -f image2 foo-%03d.jpeg
+    ```
+    这将从视频中每秒提取一帧，并将它们输出到名为 foo-001.jpeg, foo-002.jpeg 等的文件中。图像将被重新缩放以适应新的 WxH 尺寸。
+
+    如果您只想提取有限数量的帧，可以结合使用上述命令与 `-frames:v` 或 `-t` 选项，或者与 -ss 结合以从某个时间点开始提取。
+
+    对于从许多图像创建视频：
+    ```shell
+    ffmpeg -f image2 -framerate 12 -i foo-%03d.jpeg -s WxH foo.avi
+    ```
+    语法 `foo-%03d.jpeg` 表示使用由三个数字组成的十进制数（用零填充），以表示序列号。它使用的是 C printf 函数支持的相同语法，但只适合接受普通整数的格式。
+
+    当导入图像序列时，-i 还支持内部扩展类似 shell 的通配符模式（globbing），通过选择特定于 image2 的 `-pattern_type glob` 选项。
+
+    例如，从匹配通配符模式 `foo-*.jpeg` 的文件名创建视频：
+    ```shell
+    ffmpeg -f image2 -pattern_type glob -framerate 12 -i 'foo-*.jpeg' -s WxH foo.avi
+    ```
+- 您可以将多个相同类型的流放入输出中：
+    ```shell
+    ffmpeg -i test1.avi -i test2.avi -map 1:1 -map 1:0 -map 0:1 -map 0:0 -c copy -y test12.nut
+    ```
+    结果输出文件 test12.nut 将包含来自输入文件的前四个流，按相反顺序排列。
+
+- 为了强制恒定比特率 (CBR) 视频输出：
+    ```shell
+    ffmpeg -i myfile.avi -b 4000k -minrate 4000k -maxrate 4000k -bufsize 1835k out.m2v
+    ```
+- 四个选项 lmin, lmax, mblmin 和 mblmax 使用 ‘lambda’ 单位，但您可以使用 QP2LAMBDA 常量轻松地从 ‘q’ 单位转换：
+    ```shell
+    ffmpeg -i src.ext -lmax 21*QP2LAMBDA dst.ext
+    ```
+
+## 7 See Also
+
+ffmpeg-all, ffplay, ffprobe, ffmpeg-utils, ffmpeg-scaler, ffmpeg-resampler, ffmpeg-codecs, ffmpeg-bitstream-filters, ffmpeg-formats, ffmpeg-devices, ffmpeg-protocols, ffmpeg-filters
+
+## Authors
+
+FFmpeg 的开发者们。
+
+有关作者详情，请参阅项目的 Git 历史记录 (https://git.ffmpeg.org/ffmpeg)，例如，您可以通过在 FFmpeg 源代码目录中输入命令 `git log` 来查看，或者在线浏览仓库 https://git.ffmpeg.org/ffmpeg。
+
+特定组件的维护者名单列在源代码树中的 MAINTAINERS 文件里。
+
+本文档于 2025 年 1 月 3 日使用 makeinfo 生成。
