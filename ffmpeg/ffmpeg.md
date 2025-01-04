@@ -23,13 +23,21 @@ ffmpeg [global_options] {[input_file_options] -i input_url} ... {[output_file_op
 下面是一些简单的例子。
 
 - 通过重新编码媒体流，将输入媒体文件转换为不同格式
+    ```shell
     ffmpeg -i input.avi output.mp4
+    ```
 - 将输出文件的视频比特率设置为 64 kbit/s
+    ```shell
     ffmpeg -i input.avi -b:v 64k -bufsize 64k output.mp4
+    ```
 - 将输出文件的帧频强制设置为 24 fps：
+    ```shell
     ffmpeg -i input.avi -r 24 output.mp4
+    ```
 - 强制将输入文件（仅对原始格式有效）的帧频设为 1 fps，将输出文件的帧频设为 24 fps
+    ```shell
     ffmpeg -r 1 -i input.m2v -r 24 output.mp4
+    ```
 
 原始输入文件可能需要格式选项。
 
@@ -372,7 +380,8 @@ ffmpeg -i INPUT                                        \
 - 对于视频，选择分辨率最高的流，
 - 对于音频，选择声道数最多的流，
 - 对于字幕，选择找到的第一个字幕流，但有一个注意事项：输出格式的默认字幕编码器可以是基于文本或基于图像的，只有相同类型的字幕流会被选择。
-- 如果有多个相同类型的流评分相等，则选择索引最低的流。
+
+如果有多个相同类型的流评分相等，则选择索引最低的流。
 
 数据或附件流不会被自动选择，只能通过使用 `-map` 选项来包含。
 
@@ -390,7 +399,7 @@ ffmpeg -i INPUT                                        \
 
 流处理独立于流选择，但下面描述的字幕情况是个例外。流处理是通过针对特定 *output* 文件内的流设置 `-codec` 选项来完成的。特别是，编解码选项是在流选择过程之后由 FFmpeg 应用的，因此不会影响流选择。如果未为某种流类型指定 `-codec` 选项，ffmpeg 将选择由输出文件复用器注册的默认编码器。
 
-对于字幕存在一个例外。如果为输出文件指定了字幕编码器，那么找到的第一个字幕流（无论是文本还是图像）将被包含。FFmpeg 不会验证所指定的编码器是否能够转换选定的流，或者转换后的流是否在输出格式中是可以接受的。这通常也适用：当用户手动设置编码器时，流选择过程无法检查编码后的流是否可以被复用到输出文件中。如果不能，FFmpeg 将终止，并且所有输出文件都将无法处理。
+对于字幕存在一个例外。如果为输出文件指定了字幕编码器，那么找到的第一个字幕流（无论是文本还是图像）将被包含。FFmpeg 不会验证所指定的编码器是否能够转换选定的流，或者转换后的流是否在输出格式中是可以接受的。这通常也适用：当用户手动设置编码器时，流选择过程无法检查编码后的流是否可以被复用到输出文件中。如果不能，ffmpeg 将终止，并且所有输出文件都将无法处理。
 
 ### 4.2 Examples
 
@@ -519,365 +528,298 @@ ffmpeg -i INPUT -/filter:v filter.script OUTPUT
 流指定符的可能形式包括：
 
 *stream_index*
-
-    匹配具有此索引的流。例如，-threads:1 4 将第二个流的线程数设置为 4。如果 stream_index 用作附加的流指定符（见下文），那么它会选择匹配流中的第 stream_index 个流。流编号基于 libavformat 检测到的流顺序，除非还指定了流组指定符或节目 ID。在这种情况下，它基于组或节目中的流顺序。
+&nbsp;&nbsp;&nbsp;&nbsp;匹配具有此索引的流。例如，-threads:1 4 将第二个流的线程数设置为 4。如果 stream_index 用作附加的流指定符（见下文），那么它会选择匹配流中的第 stream_index 个流。流编号基于 libavformat 检测到的流顺序，除非还指定了流组指定符或节目 ID。在这种情况下，它基于组或节目中的流顺序。
 
 *stream_type[:additional_stream_specifier]*
-    stream_type 是以下之一：’v’ 或 ’V’ 表示视频，’a’ 表示音频，’s’ 表示字幕，’d’ 表示数据，以及 ’t’ 表示附件。’v’ 匹配所有视频流，而 ’V’ 仅匹配不是附加图片、视频缩略图或封面艺术的视频流。如果使用了 additional_stream_specifier，则匹配既具有该类型又符合 additional_stream_specifier 的流。否则，它匹配所有指定类型的流。
+&nbsp;&nbsp;&nbsp;&nbsp;stream_type 是以下之一：’v’ 或 ’V’ 表示视频，’a’ 表示音频，’s’ 表示字幕，’d’ 表示数据，以及 ’t’ 表示附件。’v’ 匹配所有视频流，而 ’V’ 仅匹配不是附加图片、视频缩略图或封面艺术的视频流。如果使用了 additional_stream_specifier，则匹配既具有该类型又符合 additional_stream_specifier 的流。否则，它匹配所有指定类型的流。
 
 *g:group_specifier[:additional_stream_specifier]*
+&nbsp;&nbsp;&nbsp;&nbsp;匹配在 group_specifier 指定的组中的流。如果使用了 additional_stream_specifier，则匹配既属于该组又符合 additional_stream_specifier 的流。group_specifier 可以是以下之一：
 
-    匹配在 group_specifier 指定的组中的流。如果使用了 additional_stream_specifier，则匹配既属于该组又符合 additional_stream_specifier 的流。group_specifier 可以是以下之一：
-
-    *group_index*
-
-        匹配具有此组索引的流。
-
-    *#group_id 或 i:group_id*
-
-        匹配具有此组 ID 的流。
+&nbsp;&nbsp;&nbsp;&nbsp;*group_index*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;匹配具有此组索引的流。
+&nbsp;&nbsp;&nbsp;&nbsp;*#group_id 或 i:group_id*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;匹配具有此组 ID 的流。
 
 *p:program_id[:additional_stream_specifier]*
-
-    匹配在 program_id 指定的节目中的流。如果使用了 additional_stream_specifier，则匹配既属于该节目又符合 additional_stream_specifier 的流。
+&nbsp;&nbsp;&nbsp;&nbsp;匹配在 program_id 指定的节目中的流。如果使用了 additional_stream_specifier，则匹配既属于该节目又符合 additional_stream_specifier 的流。
 
 *#stream_id 或 i:stream_id*
-
-    通过流 ID（例如 MPEG-TS 容器中的 PID）匹配流。
+&nbsp;&nbsp;&nbsp;&nbsp;通过流 ID（例如 MPEG-TS 容器中的 PID）匹配流。
 
 *m:key[:value]*
-
-    匹配包含元数据标签 key 并具有指定值的流。如果没有给出 value，则匹配包含给定标签且具有任何值的流。key 或 value 中的冒号字符 ’:’ 需要用反斜杠转义。
+&nbsp;&nbsp;&nbsp;&nbsp;匹配包含元数据标签 key 并具有指定值的流。如果没有给出 value，则匹配包含给定标签且具有任何值的流。key 或 value 中的冒号字符 ’:’ 需要用反斜杠转义。
 
 *disp:dispositions[:additional_stream_specifier]*
-
-    匹配具有给定属性（disposition）的流。dispositions 是一个由一个或多个属性（如 -dispositions 选项所打印）用 ’+’ 连接的列表。
+&nbsp;&nbsp;&nbsp;&nbsp;匹配具有给定属性（disposition）的流。dispositions 是一个由一个或多个属性（如 -dispositions 选项所打印）用 ’+’ 连接的列表。
 
 *u*
-
-    匹配配置可用的流，编解码器必须已定义，并且必须存在诸如视频尺寸或音频采样率等必要信息。
-    注意，在 `ffmpeg` 中，基于元数据的匹配仅对输入文件有效。
+&nbsp;&nbsp;&nbsp;&nbsp;匹配配置可用的流，编解码器必须已定义，并且必须存在诸如视频尺寸或音频采样率等必要信息。
+&nbsp;&nbsp;&nbsp;&nbsp;注意，在 `ffmpeg` 中，基于元数据的匹配仅对输入文件有效。
 
 ### 5.2 Generic options
 
 这些选项在 ff* 工具之间共享。
 
 -L
-
-    显示许可证。
+&nbsp;&nbsp;&nbsp;&nbsp;显示许可证。
 
 -h, -?, -help, --help [arg]
+&nbsp;&nbsp;&nbsp;&nbsp;显示帮助。可以指定一个可选参数来打印关于特定项目的帮助信息。如果没有指定参数，则只显示基本（非高级）工具选项。
 
-    显示帮助。可以指定一个可选参数来打印关于特定项目的帮助信息。如果没有指定参数，则只显示基本（非高级）工具选项。
+&nbsp;&nbsp;&nbsp;&nbsp;可能的 arg 值包括：
 
-    可能的 arg 值包括：
+&nbsp;&nbsp;&nbsp;&nbsp;long
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;除了基本工具选项外，还打印高级工具选项。
 
-    long
+&nbsp;&nbsp;&nbsp;&nbsp;full
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;打印完整的选项列表，包括编解码器、解复用器、复用器、过滤器等的共享和私有选项。
 
-        除了基本工具选项外，还打印高级工具选项。
+&nbsp;&nbsp;&nbsp;&nbsp;decoder=*decoder_name*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;打印名为 *decoder_name* 的解码器的详细信息。使用 -decoders 选项获取所有解码器的列表。
 
-    full
+&nbsp;&nbsp;&nbsp;&nbsp;encoder=*encoder_name*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;打印名为 *encoder_name* 的编码器的详细信息。使用 -encoders 选项获取所有编码器的列表。
 
-        打印完整的选项列表，包括编解码器、解复用器、复用器、过滤器等的共享和私有选项。
+&nbsp;&nbsp;&nbsp;&nbsp;demuxer=*demuxer_name*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;打印名为 *demuxer_name* 的解复用器的详细信息。使用 -formats 选项获取所有解复用器和复用器的列表。
 
-    decoder=*decoder_name*
+&nbsp;&nbsp;&nbsp;&nbsp;muxer=*muxer_name*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;打印名为 *muxer_name* 的复用器的详细信息。使用 -formats 选项获取所有复用器和解复用器的列表。
 
-        打印名为 *decoder_name* 的解码器的详细信息。使用 -decoders 选项获取所有解码器的列表。
+&nbsp;&nbsp;&nbsp;&nbsp;filter=*filter_name*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;打印名为 *filter_name* 的过滤器的详细信息。使用 -filters 选项获取所有过滤器的列表。
 
-    encoder=*encoder_name*
+&nbsp;&nbsp;&nbsp;&nbsp;bsf=*bitstream_filter_name*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;打印名为 *bitstream_filter_name* 的比特流过滤器的详细信息。使用 -bsfs 选项获取所有比特流过滤器的列表。
 
-        打印名为 *encoder_name* 的编码器的详细信息。使用 -encoders 选项获取所有编码器的列表。
-
-    demuxer=*demuxer_name*
-
-        打印名为 *demuxer_name* 的解复用器的详细信息。使用 -formats 选项获取所有解复用器和复用器的列表。
-
-    muxer=*muxer_name*
-
-        打印名为 *muxer_name* 的复用器的详细信息。使用 -formats 选项获取所有复用器和解复用器的列表。
-
-    filter=*filter_name*
-
-        打印名为 *filter_name* 的过滤器的详细信息。使用 -filters 选项获取所有过滤器的列表。
-
-    bsf=*bitstream_filter_name*
-
-        打印名为 *bitstream_filter_name* 的比特流过滤器的详细信息。使用 -bsfs 选项获取所有比特流过滤器的列表。
-
-    protocol=*protocol_name*
-
-        打印名为 *protocol_name* 的协议的详细信息。使用 -protocols 选项获取所有协议的列表。
+&nbsp;&nbsp;&nbsp;&nbsp;protocol=*protocol_name*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;打印名为 *protocol_name* 的协议的详细信息。使用 -protocols 选项获取所有协议的列表。
 
 -version
-
-    显示版本。
+&nbsp;&nbsp;&nbsp;&nbsp;显示版本。
 
 -buildconf
-
-    逐行显示构建配置。
+&nbsp;&nbsp;&nbsp;&nbsp;逐行显示构建配置。
 
 -formats
-
-    显示可用格式（包括设备）。
+&nbsp;&nbsp;&nbsp;&nbsp;显示可用格式（包括设备）。
 
 -demuxers
-
-    显示可用解复用器。
+&nbsp;&nbsp;&nbsp;&nbsp;显示可用解复用器。
 
 -muxers
-
-    显示可用复用器。
+&nbsp;&nbsp;&nbsp;&nbsp;显示可用复用器。
 
 -devices
-
-    显示可用设备。
+&nbsp;&nbsp;&nbsp;&nbsp;显示可用设备。
 
 -codecs
+&nbsp;&nbsp;&nbsp;&nbsp;显示 libavcodec 知道的所有编解码器。
 
-    显示 libavcodec 知道的所有编解码器。
-
-    注意，文档中使用的术语“编解码器”是媒体比特流格式的缩写。
+&nbsp;&nbsp;&nbsp;&nbsp;注意，文档中使用的术语“编解码器”是媒体比特流格式的缩写。
 
 -decoders
-
-    显示可用解码器。
+&nbsp;&nbsp;&nbsp;&nbsp;显示可用解码器。
 
 -encoders
-
-    显示所有可用编码器。
+&nbsp;&nbsp;&nbsp;&nbsp;显示所有可用编码器。
 
 -bsfs
-
-    显示可用比特流过滤器。
+&nbsp;&nbsp;&nbsp;&nbsp;显示可用比特流过滤器。
 
 -protocols
-
-    显示可用协议。
+&nbsp;&nbsp;&nbsp;&nbsp;显示可用协议。
 
 -filters
-
-    显示可用的 libavfilter 过滤器。
+&nbsp;&nbsp;&nbsp;&nbsp;显示可用的 libavfilter 过滤器。
 
 -pix_fmts
-
-    显示可用像素格式。
+&nbsp;&nbsp;&nbsp;&nbsp;显示可用像素格式。
 
 -sample_fmts
-
-    显示可用采样格式。
+&nbsp;&nbsp;&nbsp;&nbsp;显示可用采样格式。
 
 -layouts
-
-    显示通道名称和标准通道布局。
+&nbsp;&nbsp;&nbsp;&nbsp;显示通道名称和标准通道布局。
 
 -dispositions
-
-    显示流属性。
+&nbsp;&nbsp;&nbsp;&nbsp;显示流属性。
 
 -colors
-
-    显示识别的颜色名称。
+&nbsp;&nbsp;&nbsp;&nbsp;显示识别的颜色名称。
 
 -sources *device[,opt1=val1[,opt2=val2]...]*
-
-    显示输入设备的自动检测源。某些设备可能提供系统依赖的源名称，这些名称无法自动检测。返回的列表不能总是被认为是完整的。
+&nbsp;&nbsp;&nbsp;&nbsp;显示输入设备的自动检测源。某些设备可能提供系统依赖的源名称，这些名称无法自动检测。返回的列表不能总是被认为是完整的。
 
 ```shell
-    ffmpeg -sources pulse,server=192.168.0.4
-```
+ffmpeg -sources pulse,server=192.168.0.4
+ ```
 
 -sinks *device[,opt1=val1[,opt2=val2]...]*
-
-    显示输出设备的自动检测接收端。某些设备可能提供系统依赖的接收端名称，这些名称无法自动检测。返回的列表不能总是被认为是完整的。
+&nbsp;&nbsp;&nbsp;&nbsp;显示输出设备的自动检测接收端。某些设备可能提供系统依赖的接收端名称，这些名称无法自动检测。返回的列表不能总是被认为是完整的。
 
 ```shell
 ffmpeg -sinks pulse,server=192.168.0.4
 ```
 
 -loglevel *[flags+]loglevel | -v [flags+]loglevel*
+&nbsp;&nbsp;&nbsp;&nbsp;设置库使用的日志记录级别和标志。
 
-    设置库使用的日志记录级别和标志。
+&nbsp;&nbsp;&nbsp;&nbsp;可选的 flags 前缀可以包含以下值：
 
-    可选的 flags 前缀可以包含以下值：
+&nbsp;&nbsp;&nbsp;&nbsp;‘repeat’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;表示应重复的日志输出不应被压缩到第一行，并且将省略“上次消息重复 n 次”的行。
 
-    ‘repeat’
+&nbsp;&nbsp;&nbsp;&nbsp;‘level’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;表示日志输出应在每条消息行添加 `[level]` 前缀。这可以用作日志着色的替代方案，例如在将日志转储到文件时。
 
-        表示应重复的日志输出不应被压缩到第一行，并且将省略“上次消息重复 n 次”的行。
+&nbsp;&nbsp;&nbsp;&nbsp;也可以通过添加 ’+’/’-’ 前缀来单独设置或重置单个标志而不影响其他标志或更改日志级别。当同时设置标志和日志级别时，期望在最后一个标志值之后和 *loglevel* 之前使用 ’+’ 分隔符。
 
-    ‘level’
+&nbsp;&nbsp;&nbsp;&nbsp;*loglevel* 是一个字符串或包含以下值之一的数字：
 
-        表示日志输出应在每条消息行添加 `[level]` 前缀。这可以用作日志着色的替代方案，例如在将日志转储到文件时。
+&nbsp;&nbsp;&nbsp;&nbsp;‘quiet, -8’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;完全不显示任何内容；保持静默。
 
-    也可以通过添加 ’+’/’-’ 前缀来单独设置或重置单个标志而不影响其他标志或更改日志级别。当同时设置标志和日志级别时，期望在最后一个标志值之后和 *loglevel* 之前使用 ’+’ 分隔符。
+&nbsp;&nbsp;&nbsp;&nbsp;‘panic, 0’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;仅显示可能导致进程崩溃的致命错误，例如断言失败。这目前没有用于任何东西。
 
-    *loglevel* 是一个字符串或包含以下值之一的数字：
+&nbsp;&nbsp;&nbsp;&nbsp;‘fatal, 8’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;仅显示致命错误。这些是在发生后进程绝对无法继续的错误。
 
-    ‘quiet, -8’
+&nbsp;&nbsp;&nbsp;&nbsp;‘error, 16’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;显示所有错误，包括可以恢复的错误。
 
-        完全不显示任何内容；保持静默。
+&nbsp;&nbsp;&nbsp;&nbsp;‘warning, 24’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;显示所有警告和错误。任何与可能不正确或意外事件相关的消息都会显示。
 
-    ‘panic, 0’
+&nbsp;&nbsp;&nbsp;&nbsp;‘info, 32’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在处理期间显示信息性消息。这是除警告和错误之外的信息。这是默认值。
 
-        仅显示可能导致进程崩溃的致命错误，例如断言失败。这目前没有用于任何东西。
+&nbsp;&nbsp;&nbsp;&nbsp;‘verbose, 40’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;与 `info` 相同，只是更加详细。
 
-    ‘fatal, 8’
+&nbsp;&nbsp;&nbsp;&nbsp;‘debug, 48’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;显示所有内容，包括调试信息。
 
-        仅显示致命错误。这些是在发生后进程绝对无法继续的错误。
+&nbsp;&nbsp;&nbsp;&nbsp;‘trace, 56’
 
-    ‘error, 16’
-
-        显示所有错误，包括可以恢复的错误。
-
-    ‘warning, 24’
-
-        显示所有警告和错误。任何与可能不正确或意外事件相关的消息都会显示。
-
-    ‘info, 32’
-
-        在处理期间显示信息性消息。这是除警告和错误之外的信息。这是默认值。
-
-    ‘verbose, 40’
-
-        与 `info` 相同，只是更加详细。
-
-    ‘debug, 48’
-
-        显示所有内容，包括调试信息。
-
-    ‘trace, 56’
-
-    例如，要启用重复的日志输出，添加`level`前缀，并将 *loglevel* 设置为 `verbose`：
+&nbsp;&nbsp;&nbsp;&nbsp;例如，要启用重复的日志输出，添加`level`前缀，并将 *loglevel* 设置为 `verbose`：
 
 ```shell
 ffmpeg -loglevel repeat+level+verbose -i input output
 ```
 
-    另一个例子是仅启用重复的日志输出而不影响当前级别的前缀标志或日志级别：
+&nbsp;&nbsp;&nbsp;&nbsp;另一个例子是仅启用重复的日志输出而不影响当前级别的前缀标志或日志级别：
 
 ```shell
 ffmpeg [...] -loglevel +repeat
 ```
-
-    默认情况下，程序会记录到 stderr。如果终端支持颜色，则颜色会被用来标记错误和警告。可以通过设置环境变量 `AV_LOG_FORCE_NOCOLOR` 来禁用日志颜色，或者通过设置环境变量 `AV_LOG_FORCE_COLOR` 来强制使用日志颜色。
+&nbsp;&nbsp;&nbsp;&nbsp;默认情况下，程序会记录到 stderr。如果终端支持颜色，则颜色会被用来标记错误和警告。可以通过设置环境变量 `AV_LOG_FORCE_NOCOLOR` 来禁用日志颜色，或者通过设置环境变量 `AV_LOG_FORCE_COLOR` 来强制使用日志颜色。
 
 -report
+&nbsp;&nbsp;&nbsp;&nbsp;将完整的命令行和日志输出转储到当前目录中的名为 `*program-YYYYMMDD-HHMMSS*.log` 的文件中。此文件可用于错误报告。它也意味着 `-loglevel debug`。
 
-    将完整的命令行和日志输出转储到当前目录中的名为 `*program-YYYYMMDD-HHMMSS*.log` 的文件中。此文件可用于错误报告。它也意味着 `-loglevel debug`。
+&nbsp;&nbsp;&nbsp;&nbsp;将环境变量 `FFREPORT` 设置为任何值都有相同的效果。如果值是一个以 ’:’ 分隔的 key=value 序列，这些选项将影响报告；选项值必须在包含特殊字符或选项分隔符 ’:’ 时进行转义（参见 ffmpeg-utils 手册中的“引用和转义”部分）。
 
-    将环境变量 `FFREPORT` 设置为任何值都有相同的效果。如果值是一个以 ’:’ 分隔的 key=value 序列，这些选项将影响报告；选项值必须在包含特殊字符或选项分隔符 ’:’ 时进行转义（参见 ffmpeg-utils 手册中的“引用和转义”部分）。
+&nbsp;&nbsp;&nbsp;&nbsp;识别以下选项：
 
-    识别以下选项：
+&nbsp;&nbsp;&nbsp;&nbsp;file
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;设置报告使用的文件名；`%p` 展开为程序名，`%t` 展开为时间戳，`%%` 展开为普通 `%`。
 
-    file
+&nbsp;&nbsp;&nbsp;&nbsp;level
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用数值设置日志详细程度级别（参见 `-loglevel`）。
 
-        设置报告使用的文件名；`%p` 展开为程序名，`%t` 展开为时间戳，`%%` 展开为普通 `%`。
-
-    level
-
-        使用数值设置日志详细程度级别（参见 `-loglevel`）。
-
-    例如，要将报告输出到名为 ffreport.log 的文件并使用 `32` 日志级别（即 `info` 级别）：
+&nbsp;&nbsp;&nbsp;&nbsp;例如，要将报告输出到名为 ffreport.log 的文件并使用 `32` 日志级别（即 `info` 级别）：
 
 ```shell
 FFREPORT=file=ffreport.log:level=32 ffmpeg -i input output
 ```
 
-    解析环境变量中的错误不会出现在报告中。
+&nbsp;&nbsp;&nbsp;&nbsp;解析环境变量中的错误不会出现在报告中。
 
 -hide_banner
+&nbsp;&nbsp;&nbsp;&nbsp;抑制打印横幅。
 
-    抑制打印横幅。
-
-    所有 FFmpeg 工具通常会显示版权声明、构建选项和库版本。可以使用此选项抑制打印此信息。
+&nbsp;&nbsp;&nbsp;&nbsp;所有 FFmpeg 工具通常会显示版权声明、构建选项和库版本。可以使用此选项抑制打印此信息。
 
 -cpuflags flags (*global*)
-
-    允许设置和清除 CPU 标志。此选项用于测试目的。除非你明白你在做什么，否则不要使用它。
-
+&nbsp;&nbsp;&nbsp;&nbsp;允许设置和清除 CPU 标志。此选项用于测试目的。除非你明白你在做什么，否则不要使用它。
 ```shell
 ffmpeg -cpuflags -sse+mmx ...
 ffmpeg -cpuflags mmx ...
 ffmpeg -cpuflags 0 ...
 ```
+&nbsp;&nbsp;&nbsp;&nbsp;可能的标志包括：
 
-    可能的标志包括：
+&nbsp;&nbsp;&nbsp;&nbsp;‘x86’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘mmx’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘mmxext’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘sse’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘sse2’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘sse2slow’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘sse3’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘sse3slow’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘ssse3’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘atom’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘sse4.1’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘sse4.2’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘avx’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘avx2’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘xop’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘fma3’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘fma4’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘3dnow’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘3dnowext’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘bmi1’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘bmi2’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘cmov’
 
-    ‘x86’
+&nbsp;&nbsp;&nbsp;&nbsp;‘ARM’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘armv5te’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘armv6’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘armv6t2’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘vfp’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘vfpv3’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘neon’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘setend’
 
-        ‘mmx’
-        ‘mmxext’
-        ‘sse’
-        ‘sse2’
-        ‘sse2slow’
-        ‘sse3’
-        ‘sse3slow’
-        ‘ssse3’
-        ‘atom’
-        ‘sse4.1’
-        ‘sse4.2’
-        ‘avx’
-        ‘avx2’
-        ‘xop’
-        ‘fma3’
-        ‘fma4’
-        ‘3dnow’
-        ‘3dnowext’
-        ‘bmi1’
-        ‘bmi2’
-        ‘cmov’
+&nbsp;&nbsp;&nbsp;&nbsp;‘AArch64’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘armv8’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘vfp’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘neon’
 
-    ‘ARM’
+&nbsp;&nbsp;&nbsp;&nbsp;‘PowerPC’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘altivec’
 
-        ‘armv5te’
-        ‘armv6’
-        ‘armv6t2’
-        ‘vfp’
-        ‘vfpv3’
-        ‘neon’
-        ‘setend’
-
-    ‘AArch64’
-
-        ‘armv8’
-        ‘vfp’
-        ‘neon’
-
-    ‘PowerPC’
-
-        ‘altivec’
-
-    ‘Specific Processors’
-        ‘pentium2’
-        ‘pentium3’
-        ‘pentium4’
-        ‘k6’
-        ‘k62’
-        ‘athlon’
-        ‘athlonxp’
-        ‘k8’
+&nbsp;&nbsp;&nbsp;&nbsp;‘Specific Processors’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘pentium2’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘pentium3’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘pentium4’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘k6’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘k62’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘athlon’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘athlonxp’
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;‘k8’
 
 -cpucount *count* (*global*)
-
-    覆盖 CPU 数量的检测。此选项用于测试目的。除非你明白你在做什么，否则不要使用它。
+&nbsp;&nbsp;&nbsp;&nbsp;覆盖 CPU 数量的检测。此选项用于测试目的。除非你明白你在做什么，否则不要使用它。
 ```shell
 ffmpeg -cpucount 2
 ```
 
 -max_alloc bytes
-
-    设置 ffmpeg 的 malloc 函数族在堆上分配块的最大大小限制。使用此选项时需极度小心。如果你不了解这样做带来的全部后果，请勿使用。默认值为 INT_MAX。
+&nbsp;&nbsp;&nbsp;&nbsp;设置 ffmpeg 的 malloc 函数族在堆上分配块的最大大小限制。使用此选项时需极度小心。如果你不了解这样做带来的全部后果，请勿使用。默认值为 INT_MAX。
 
 ### 5.3 AVOptions
 
 这些选项是由 libavformat、libavdevice 和 libavcodec 库直接提供的。要查看可用的 AVOptions 列表，可以使用 -help 选项。它们被分为两类：
 
 generic
-
-    这些选项可以为任何容器、编解码器或设备设置。通用选项在容器/设备下列为 AVFormatContext 选项，在编解码器下列为 AVCodecContext 选项。
+&nbsp;&nbsp;&nbsp;&nbsp;这些选项可以为任何容器、编解码器或设备设置。通用选项在容器/设备下列为 AVFormatContext 选项，在编解码器下列为 AVCodecContext 选项。
 
 private
-
-    这些选项特定于给定的容器、设备或编解码器。私有选项在其对应的容器/设备/编解码器下列出。
+&nbsp;&nbsp;&nbsp;&nbsp;这些选项特定于给定的容器、设备或编解码器。私有选项在其对应的容器/设备/编解码器下列出。
 
 例如，要写入 ID3v2.3 标头而不是默认的 ID3v2.4 到 MP3 文件中，可以使用 MP3 复用器的 id3v2_version 私有选项：
 
@@ -900,118 +842,101 @@ ffmpeg -i multichannel.mxf -map 0:v:0 -map 0:a:0 -map 0:a:0 -c:a:0 ac3 -b:a:0 64
 ### 5.4 Main options
 
 -f *fmt* (*input/output*)
-
-    强制输入或输出文件格式。通常情况下，输入文件的格式会自动检测，而输出文件的格式则根据文件扩展名猜测，所以在大多数情况下不需要使用此选项。
+&nbsp;&nbsp;&nbsp;&nbsp;强制输入或输出文件格式。通常情况下，输入文件的格式会自动检测，而输出文件的格式则根据文件扩展名猜测，所以在大多数情况下不需要使用此选项。
 
 -i *url*(*input*)
-
-    指定输入文件的 URL。
+&nbsp;&nbsp;&nbsp;&nbsp;指定输入文件的 URL。
 
 -y (*global*)
-
-    不询问直接覆盖输出文件。
+&nbsp;&nbsp;&nbsp;&nbsp;不询问直接覆盖输出文件。
 
 -n (*global*)
-
-    如果指定的输出文件已经存在，则不覆盖并立即退出。
+&nbsp;&nbsp;&nbsp;&nbsp;如果指定的输出文件已经存在，则不覆盖并立即退出。
 
 -stream_loop *number* (*input*)
-
-    设置输入流循环播放的次数。0 表示不循环，-1 表示无限循环。
+&nbsp;&nbsp;&nbsp;&nbsp;设置输入流循环播放的次数。0 表示不循环，-1 表示无限循环。
 
 -recast_media (*global*)
-
-    允许强制使用与解复用器检测或指定的不同媒体类型的解码器。对于作为数据流复用的媒体数据解码很有用。
+&nbsp;&nbsp;&nbsp;&nbsp;允许强制使用与解复用器检测或指定的不同媒体类型的解码器。对于作为数据流复用的媒体数据解码很有用。
 
 -c[:stream_specifier] codec (*input/output,per-stream*)
 -codec[:stream_specifier] codec (*input/output,per-stream*)
+&nbsp;&nbsp;&nbsp;&nbsp;为一个或多个流选择解码器（在输入文件前使用）或编码器（在输出文件前使用）。*codec* 是解码器/编码器的名字，或者是一个特殊的值 `copy`（仅限输出），表示该流不会被重新编码。
 
-    为一个或多个流选择解码器（在输入文件前使用）或编码器（在输出文件前使用）。*codec* 是解码器/编码器的名字，或者是一个特殊的值 `copy`（仅限输出），表示该流不会被重新编码。
-
-    例如
+&nbsp;&nbsp;&nbsp;&nbsp;例如
 ```shell
 ffmpeg -i INPUT -map 0 -c:v libx264 -c:a copy OUTPUT
 ```
+&nbsp;&nbsp;&nbsp;&nbsp;将所有视频流使用 libx264 编码，并复制所有音频流。
 
-    将所有视频流使用 libx264 编码，并复制所有音频流。
-
-    对于每个流，最后匹配的 `c` 选项会被应用，所以
+&nbsp;&nbsp;&nbsp;&nbsp;对于每个流，最后匹配的 `c` 选项会被应用，所以
 
 ```shell
 ffmpeg -i INPUT -map 0 -c copy -c:v:1 libx264 -c:a:137 libvorbis OUTPUT
 ```
 
-    除了第二个视频流将使用 libx264 编码和第 138 个音频流将使用 libvorbis 编码外，其他所有流都将被复制。
+&nbsp;&nbsp;&nbsp;&nbsp;除了第二个视频流将使用 libx264 编码和第 138 个音频流将使用 libvorbis 编码外，其他所有流都将被复制。
 
 -t *duration* (*input/output*)
+&nbsp;&nbsp;&nbsp;&nbsp;当作为输入选项使用时（在 `-i` 之前），限制从输入文件读取的数据持续时间。
 
-    当作为输入选项使用时（在 `-i` 之前），限制从输入文件读取的数据持续时间。
+&nbsp;&nbsp;&nbsp;&nbsp;当作为输出选项使用时（在输出 URL 之前），在持续时间达到 duration 后停止写入输出。
 
-    当作为输出选项使用时（在输出 URL 之前），在持续时间达到 duration 后停止写入输出。
+&nbsp;&nbsp;&nbsp;&nbsp;*duration* 必须是时间持续时间规格，参见 ffmpeg-utils(1) 手册中的“时间持续时间”部分。
 
-    *duration* 必须是时间持续时间规格，参见 ffmpeg-utils(1) 手册中的“时间持续时间”部分。
-
-    -to 和 -t 互斥，且 -t 优先。
+&nbsp;&nbsp;&nbsp;&nbsp;-to 和 -t 互斥，且 -t 优先。
 
 -to *position* (*input/output*)
 
-    在位置处停止写入输出或读取输入。position 必须是时间持续时间规格，参见 ffmpeg-utils(1) 手册中的“时间持续时间”部分。
+&nbsp;&nbsp;&nbsp;&nbsp;在位置处停止写入输出或读取输入。position 必须是时间持续时间规格，参见 ffmpeg-utils(1) 手册中的“时间持续时间”部分。
 
-    -to 和 -t 互斥，且 -t 优先。
+&nbsp;&nbsp;&nbsp;&nbsp;-to 和 -t 互斥，且 -t 优先。
 
 -fs *limit_size* (*output*)
-
-    设置文件大小限制，以字节表示。超过限制后不再写入任何字节块。输出文件的实际大小可能略大于请求的文件大小。
+&nbsp;&nbsp;&nbsp;&nbsp;设置文件大小限制，以字节表示。超过限制后不再写入任何字节块。输出文件的实际大小可能略大于请求的文件大小。
 
 -ss *position* (*input/output*)
+&nbsp;&nbsp;&nbsp;&nbsp;当作为输入选项使用时（在 `-i` 之前），在此输入文件中跳转到 position。请注意，在大多数格式中无法精确跳转，因此 `ffmpeg` 将跳转到最接近 position 的跳转点之前。当进行转码且启用了 -accurate_seek（默认启用）时，这个额外段落将在 position 和跳转点之间的部分被解码并丢弃。当执行流复制或使用了 -noaccurate_seek 时，它将被保留。
 
-    当作为输入选项使用时（在 `-i` 之前），在此输入文件中跳转到 position。请注意，在大多数格式中无法精确跳转，因此 `ffmpeg` 将跳转到最接近 position 的跳转点之前。当进行转码且启用了 -accurate_seek（默认启用）时，这个额外段落将在 position 和跳转点之间的部分被解码并丢弃。当执行流复制或使用了 -noaccurate_seek 时，它将被保留。
+&nbsp;&nbsp;&nbsp;&nbsp;当作为输出选项使用时（在输出 URL 之前），解码但丢弃直到时间戳到达 *position* 的输入。
 
-    当作为输出选项使用时（在输出 URL 之前），解码但丢弃直到时间戳到达 *position* 的输入。
-
-    *position* 必须是时间持续时间规格，参见 ffmpeg-utils(1) 手册中的“时间持续时间”部分。
+&nbsp;&nbsp;&nbsp;&nbsp;*position* 必须是时间持续时间规格，参见 ffmpeg-utils(1) 手册中的“时间持续时间”部分。
 
 -sseof *position* (*input*)
-
-    类似于 `-ss` 选项，但相对于文件的“末尾”。即负值表示文件更早的位置，0 表示文件末尾（EOF）。
+&nbsp;&nbsp;&nbsp;&nbsp;类似于 `-ss` 选项，但相对于文件的“末尾”。即负值表示文件更早的位置，0 表示文件末尾（EOF）。
 
 -isync *input_index* (*input*)
-    
-    将一个输入指定为同步源。
+&nbsp;&nbsp;&nbsp;&nbsp;将一个输入指定为同步源。
 
-    这会取目标和参考输入开始时间之间的差值，并根据该差值调整目标文件的时间戳。为了获得预期的结果，两个输入的时间戳应源自相同的时钟源。如果设置了 `copyts`，则必须同时设置 `start_at_zero`。如果任一输入没有起始时间戳，则不会进行同步调整。
+&nbsp;&nbsp;&nbsp;&nbsp;这会取目标和参考输入开始时间之间的差值，并根据该差值调整目标文件的时间戳。为了获得预期的结果，两个输入的时间戳应源自相同的时钟源。如果设置了 `copyts`，则必须同时设置 `start_at_zero`。如果任一输入没有起始时间戳，则不会进行同步调整。
 
-    可接受的值是指向有效 ffmpeg 输入索引的值。如果同步参考是目标索引本身或 -1，则不对目标时间戳进行调整。同步参考不能被同步到任何其他输入。
+&nbsp;&nbsp;&nbsp;&nbsp;可接受的值是指向有效 ffmpeg 输入索引的值。如果同步参考是目标索引本身或 -1，则不对目标时间戳进行调整。同步参考不能被同步到任何其他输入。
 
-    默认值为 -1。
+&nbsp;&nbsp;&nbsp;&nbsp;默认值为 -1。
 
 -itsoffset *offset* (*input*)
+&nbsp;&nbsp;&nbsp;&nbsp;设置输入时间偏移。
 
-    设置输入时间偏移。
+&nbsp;&nbsp;&nbsp;&nbsp;*offset* 必须是一个时间持续时间规格，参见 ffmpeg-utils(1) 手册中的“时间持续时间”部分。
 
-    *offset* 必须是一个时间持续时间规格，参见 ffmpeg-utils(1) 手册中的“时间持续时间”部分。
-
-    此偏移量会被添加到输入文件的时间戳上。指定正偏移量意味着相应的流将被延迟指定在 *offset* 中的时间长度。
+&nbsp;&nbsp;&nbsp;&nbsp;此偏移量会被添加到输入文件的时间戳上。指定正偏移量意味着相应的流将被延迟指定在 *offset* 中的时间长度。
 
 -itsscale *scale* (*input,per-stream*)
-
-    重新缩放输入时间戳。*scale* 应该是一个浮点数。
+&nbsp;&nbsp;&nbsp;&nbsp;重新缩放输入时间戳。*scale* 应该是一个浮点数。
 
 -timestamp *date* (输出)
+&nbsp;&nbsp;&nbsp;&nbsp;在容器中设置录制时间戳。
 
-    在容器中设置录制时间戳。
-
-    *date* 必须是一个日期规格，参见 ffmpeg-utils(1) 手册中的“日期”部分。
+&nbsp;&nbsp;&nbsp;&nbsp;*date* 必须是一个日期规格，参见 ffmpeg-utils(1) 手册中的“日期”部分。
 
 -metadata[:metadata_specifier] *key=value* (output,per-metadata)
+&nbsp;&nbsp;&nbsp;&nbsp;设置一个元数据键/值对。
 
-    设置一个元数据键/值对。
+&nbsp;&nbsp;&nbsp;&nbsp;可以提供一个可选的 *metadata_specifier* 来在流、章节或节目上设置元数据。详情请参阅 `-map_metadata` 文档。
 
-    可以提供一个可选的 *metadata_specifier* 来在流、章节或节目上设置元数据。详情请参阅 `-map_metadata` 文档。
+&nbsp;&nbsp;&nbsp;&nbsp;此选项会覆盖使用 `-map_metadata` 设置的元数据。也可以通过使用空值来删除元数据。
 
-    此选项会覆盖使用 `-map_metadata` 设置的元数据。也可以通过使用空值来删除元数据。
-
-    例如，对于设置输出文件的标题：
+&nbsp;&nbsp;&nbsp;&nbsp;例如，对于设置输出文件的标题：
 
 ```shell
 ffmpeg -i in.avi -metadata title="my title" out.flv
@@ -1024,257 +949,254 @@ ffmpeg -i INPUT -metadata:s:a:0 language=eng OUTPUT
 ```
 
 -disposition[:stream_specifier] *value* (*output,per-stream*)
+&nbsp;&nbsp;&nbsp;&nbsp;为一个流设置属性标志。
 
-    为一个流设置属性标志。
+&nbsp;&nbsp;&nbsp;&nbsp;默认值：默认情况下，所有属性标志都会从输入流复制过来，除非该选项适用的输出流是由复杂滤波图供给的——在这种情况下，默认不会设置任何属性标志。
 
-    默认值：默认情况下，所有属性标志都会从输入流复制过来，除非该选项适用的输出流是由复杂滤波图供给的——在这种情况下，默认不会设置任何属性标志。
+&nbsp;&nbsp;&nbsp;&nbsp;*value* 是由 ‘+’ 或 ‘-’ 分隔的属性标志序列。‘+’ 前缀表示添加给定的属性，‘-’ 表示移除它。如果第一个标志也带有 ‘+’ 或 ‘-’ 前缀，则最终的属性是默认值更新为 value 的结果。如果第一个标志没有前缀，则最终的属性就是 value。也可以通过将其设置为 0 来清除属性。
 
-    *value* 是由 ‘+’ 或 ‘-’ 分隔的属性标志序列。‘+’ 前缀表示添加给定的属性，‘-’ 表示移除它。如果第一个标志也带有 ‘+’ 或 ‘-’ 前缀，则最终的属性是默认值更新为 value 的结果。如果第一个标志没有前缀，则最终的属性就是 value。也可以通过将其设置为 0 来清除属性。
+&nbsp;&nbsp;&nbsp;&nbsp;如果没有为输出文件指定 `-disposition` 选项，当输出文件中有多个此类类型的流且没有标记为默认的流时，ffmpeg 将自动为每种类型的第一个流设置 ‘default’ 属性标志。
 
-    如果没有为输出文件指定 `-disposition` 选项，当输出文件中有多个此类类型的流且没有标记为默认的流时，ffmpeg 将自动为每种类型的第一个流设置 ‘default’ 属性标志。
+&nbsp;&nbsp;&nbsp;&nbsp;`-dispositions` 选项列出了已知的属性标志。
 
-    `-dispositions` 选项列出了已知的属性标志。
-
-    例如，要使第二个音频流成为默认流：
+&nbsp;&nbsp;&nbsp;&nbsp;例如，要使第二个音频流成为默认流：
 
 ```shell
 ffmpeg -i in.mkv -c copy -disposition:a:1 default out.mkv
 ```
 
-    要使第二个字幕流成为默认流并移除第一个字幕流的默认属性：
+&nbsp;&nbsp;&nbsp;&nbsp;要使第二个字幕流成为默认流并移除第一个字幕流的默认属性：
 
 ```shell
 ffmpeg -i in.mkv -c copy -disposition:s:0 0 -disposition:s:1 default out.mkv
 ```
 
-    要添加嵌入封面/缩略图：
+&nbsp;&nbsp;&nbsp;&nbsp;要添加嵌入封面/缩略图：
 
 ```shell
 ffmpeg -i in.mp4 -i IMAGE -map 0 -map 1 -c copy -c:v:1 png -disposition:v:1 attached_pic out.mp4
 ```
 
-    要为第一个音频流添加 ‘original’ 属性并移除 ‘comment’ 属性而不移除其其他属性：
+&nbsp;&nbsp;&nbsp;&nbsp;要为第一个音频流添加 ‘original’ 属性并移除 ‘comment’ 属性而不移除其其他属性：
 
 ```shell
 ffmpeg -i in.mkv -c copy -disposition:a:0 +original-comment out.mkv
 ```
 
-    要从第一个音频流移除 ‘original’ 属性并添加 ‘comment’ 属性而不移除其其他属性：
+&nbsp;&nbsp;&nbsp;&nbsp;要从第一个音频流移除 ‘original’ 属性并添加 ‘comment’ 属性而不移除其其他属性：
 
 ```shell
 ffmpeg -i in.mkv -c copy -disposition:a:0 -original+comment out.mkv
 ```
 
-    只为第一个音频流设置 ‘original’ 和 ‘comment’ 属性（并移除其他属性）：
+&nbsp;&nbsp;&nbsp;&nbsp;只为第一个音频流设置 ‘original’ 和 ‘comment’ 属性（并移除其他属性）：
 
 ```shell
 ffmpeg -i in.mkv -c copy -disposition:a:0 original+comment out.mkv
 ```
 
-    移除第一个音频流的所有属性：
+&nbsp;&nbsp;&nbsp;&nbsp;移除第一个音频流的所有属性：
 
 ```shell
 ffmpeg -i in.mkv -c copy -disposition:a:0 0 out.mkv
 ```
 
-    并非所有的复用器都支持嵌入式缩略图，并且那些支持的复用器只支持几种格式，比如 JPEG 或 PNG。
+&nbsp;&nbsp;&nbsp;&nbsp;并非所有的复用器都支持嵌入式缩略图，并且那些支持的复用器只支持几种格式，比如 JPEG 或 PNG。
 
 -program [title=*title*:][program_num=*program_num*:]st=*stream*[:st=*stream*...] (*output*)
-
-    创建一个具有指定标题（*title*）、程序编号（*program_num*）的节目，并将指定的*stream(s)*添加到其中。
+&nbsp;&nbsp;&nbsp;&nbsp;创建一个具有指定标题（*title*）、程序编号（*program_num*）的节目，并将指定的*stream(s)*添加到其中。
 
 -stream_group [map=*input_file_id*=*stream_group*][type=*type*:]st=*stream*[:st=*stream*][:stg=*stream_group*][:id=*stream_group_id*...] (*output*)
+&nbsp;&nbsp;&nbsp;&nbsp;创建一个指定类型和流组ID（*stream_group_id*）的流组，或通过映射输入组创建，将指定的*stream(s)*和/或先前定义的*stream_group(s)*添加到其中。
 
-    创建一个指定类型和流组ID（*stream_group_id*）的流组，或通过映射输入组创建，将指定的*stream(s)*和/或先前定义的*stream_group(s)*添加到其中。
+&nbsp;&nbsp;&nbsp;&nbsp;*type* 可以是以下之一：
 
-    *type* 可以是以下之一：
+&nbsp;&nbsp;&nbsp;&nbsp;iamf_audio_element
 
-    iamf_audio_element
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将属于同一 IAMF 音频元素的流分组
 
-        将属于同一 IAMF 音频元素的流分组
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;对于这种类型的组，有以下可用选项：
 
-        对于这种类型的组，有以下可用选项：
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;audio_element_type
 
-        audio_element_type
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;音频元素类型。支持以下值：
 
-            音频元素类型。支持以下值：
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;channel
 
-            channel
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可扩展声道音频表示
 
-                可扩展声道音频表示
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scene
 
-            scene
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ambisonics 表示
 
-                Ambisonics 表示
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;demixing
 
-        demixing
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用于重建可扩展声道音频表示的解混信息。此选项必须用 ‘,’ 与其他部分分开，并采用 key=value 的格式
 
-            用于重建可扩展声道音频表示的解混信息。此选项必须用 ‘,’ 与其他部分分开，并采用 key=value 的格式
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parameter_id
 
-            parameter_id
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧中的参数块可能引用的标识符
 
-                帧中的参数块可能引用的标识符
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dmixp_mode
 
-            dmixp_mode
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;预定义的解混参数组合
 
-                预定义的解混参数组合
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;recon_gain
 
-        recon_gain
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用于重建可扩展声道音频表示的重构造增益信息。此选项必须用 ‘,’ 与其他部分分开，并采用 key=value 的格式
 
-            用于重建可扩展声道音频表示的重构造增益信息。此选项必须用 ‘,’ 与其他部分分开，并采用 key=value 的格式
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parameter_id
 
-            parameter_id
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧中的参数块可能引用的标识符
 
-                帧中的参数块可能引用的标识符
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;layer
 
-        layer
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;定义音频元素中通道布局的层。此选项必须用 ‘,’ 与其他部分分开。可以定义多个 ‘,’ 分隔的条目，且至少需要设置一个。
 
-            定义音频元素中通道布局的层。此选项必须用 ‘,’ 与其他部分分开。可以定义多个 ‘,’ 分隔的条目，且至少需要设置一个。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;它采用以下 “:” 分隔的 key=value 格式
 
-            它采用以下 “:” 分隔的 key=value 格式
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ch_layout
 
-            ch_layout
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;层的通道布局
 
-                层的通道布局
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flags
 
-            flags
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可用的标志如下：
 
-                可用的标志如下：
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;recon_gain
 
-                recon_gain
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;是否在帧内的参数块中标记 recon_gain 是否存在作为元数据
 
-                    是否在帧内的参数块中标记 recon_gain 是否存在作为元数据
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;output_gain
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;output_gain_flags
 
-            output_gain
-            output_gain_flags
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;output_gain 应用于哪些通道。可用的标志如下：
 
-                output_gain 应用于哪些通道。可用的标志如下：
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FR
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BR
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TFL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TFR
 
-                FL
-                FR
-                BL
-                BR
-                TFL
-                TFR
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ambisonics_mode
 
-            ambisonics_mode
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果设置了 audio_element_type 为 channel，则该选项无效。
 
-                如果设置了 audio_element_type 为 channel，则该选项无效。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;支持以下值：
 
-                支持以下值：
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mono
 
-                mono
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;每个 Ambisonics 通道被编码为组中的独立单声道流
 
-                    每个 Ambisonics 通道被编码为组中的独立单声道流
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default_w
 
-        default_w
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;默认权重值
 
-            默认权重值
+&nbsp;&nbsp;&nbsp;&nbsp;iamf_mix_presentation
 
-    iamf_mix_presentation
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将属于同一 IAMF 混合演示的所有 IAMF 音频元素的流分组
 
-        将属于同一 IAMF 混合演示的所有 IAMF 音频元素的流分组
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;对于这种类型的组，有以下可用选项：
 
-        对于这种类型的组，有以下可用选项：
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;submix
 
-        submix
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;混合演示中的子混音。此选项必须用 ‘,’ 与其他部分分开。可以定义多个 ‘,’ 分隔的条目，且至少需要设置一个。
 
-            混合演示中的子混音。此选项必须用 ‘,’ 与其他部分分开。可以定义多个 ‘,’ 分隔的条目，且至少需要设置一个。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;它采用以下 “:” 分隔的 key=value 格式
 
-            它采用以下 “:” 分隔的 key=value 格式
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parameter_id
 
-            parameter_id
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧中的参数块可能引用的标识符，用于后处理混合后的音频信号以生成播放用的音频信号
 
-                帧中的参数块可能引用的标识符，用于后处理混合后的音频信号以生成播放用的音频信号
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parameter_rate
 
-            parameter_rate
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧中引用此 parameter_id 的参数块的采样率持续时间字段的表达方式
 
-                帧中引用此 parameter_id 的参数块的采样率持续时间字段的表达方式
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default_mix_gain
 
-            default_mix_gain
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当给定帧没有共享相同 parameter_id 的参数块时应用的默认混音增益值
 
-                当给定帧没有共享相同 parameter_id 的参数块时应用的默认混音增益值
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;element
 
-            element
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;引用在此混合演示中使用的音频元素以生成最终输出音频信号用于播放。此选项必须用 ‘|’ 与其他部分分开。可以定义多个 ‘|’ 分隔的条目，且至少需要设置一个。
 
-                引用在此混合演示中使用的音频元素以生成最终输出音频信号用于播放。此选项必须用 ‘|’ 与其他部分分开。可以定义多个 ‘|’ 分隔的条目，且至少需要设置一个。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;它采用以下 “:” 分隔的 key=value 格式：
 
-                它采用以下 “:” 分隔的 key=value 格式：
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stg
 
-                stg
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;此子混音引用的音频元素的 *stream_group_id*
 
-                    此子混音引用的音频元素的 *stream_group_id*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parameter_id
 
-                parameter_id
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧中的参数块可能引用的标识符，用于对引用和渲染的音频元素进行任何处理，然后再与其他处理过的音频元素相加
 
-                    帧中的参数块可能引用的标识符，用于对引用和渲染的音频元素进行任何处理，然后再与其他处理过的音频元素相加
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parameter_rate
 
-                parameter_rate
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;帧中引用此 *parameter_id* 的参数块的采样率持续时间字段的表达方式
 
-                    帧中引用此 *parameter_id* 的参数块的采样率持续时间字段的表达方式
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default_mix_gain
 
-                default_mix_gain
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当给定帧没有共享相同 *parameter_id* 的参数块时应用的默认混音增益值
 
-                    当给定帧没有共享相同 *parameter_id* 的参数块时应用的默认混音增益值
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;annotations
 
-                annotations
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;描述子混音元素的关键字 = 值字符串，其中 "key" 是符合 BCP-47 规范的字符串，用于指定 "value" 字符串的语言。"key" 必须与混音的*annotations*中的键相同
 
-                    描述子混音元素的关键字 = 值字符串，其中 "key" 是符合 BCP-47 规范的字符串，用于指定 "value" 字符串的语言。"key" 必须与混音的*annotations*中的键相同
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;headphones_rendering_mode
 
-                headphones_rendering_mode
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;指示当在耳机上播放时，基于输入通道的音频元素是渲染为立体声扬声器还是使用双耳渲染器进行空间化。如果引用的音频元素的 *audio_element_type* 设置为 channel，则该选项无效。
 
-                    指示当在耳机上播放时，基于输入通道的音频元素是渲染为立体声扬声器还是使用双耳渲染器进行空间化。如果引用的音频元素的 *audio_element_type* 设置为 channel，则该选项无效。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;支持以下值：
 
-                    支持以下值：
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stereo
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binaural
 
-                    stereo
-                    binaural
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;layout
 
-            layout
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;指定测量响度信息的此子混音的布局。此选项必须用 ‘|’ 与其他部分分开。可以定义多个 ‘|’ 分隔的条目，且至少需要设置一个。
 
-                指定测量响度信息的此子混音的布局。此选项必须用 ‘|’ 与其他部分分开。可以定义多个 ‘|’ 分隔的条目，且至少需要设置一个。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;它采用以下 “:” 分隔的 key=value 格式：
 
-                它采用以下 “:” 分隔的 key=value 格式：
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;layout_type
 
-                layout_type
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loudspeakers
 
-                    loudspeakers
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;布局遵循 ITU-2051-3 的扬声器音响系统规范。
 
-                        布局遵循 ITU-2051-3 的扬声器音响系统规范。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binaural
 
-                    binaural
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;布局是双耳的。
 
-                        布局是双耳的。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_system
 
-                sound_system
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;匹配 ITU-2051-3 中的 A 到 J 音响系统之一，加上 7.1.2 和 3.1.2。如果 layout_type 设置为 binaural，则此选项无效。
 
-                    匹配 ITU-2051-3 中的 A 到 J 音响系统之一，加上 7.1.2 和 3.1.2。如果 layout_type 设置为 binaural，则此选项无效。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;integrated_loudness
 
-                integrated_loudness
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;程序集成响度信息，如 ITU-1770-4 所定义。
 
-                    程序集成响度信息，如 ITU-1770-4 所定义。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;digital_peak
 
-                digital_peak
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数字（采样）峰值，如 ITU-1770-4 所定义。
 
-                    数字（采样）峰值，如 ITU-1770-4 所定义。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;true_peak
 
-                true_peak
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;真实峰值，如 ITU-1770-4 所定义。
 
-                    真实峰值，如 ITU-1770-4 所定义。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dialog_anchored_loudness
 
-                dialog_anchored_loudness
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;对话响度信息，如 ITU-1770-4 所定义。
 
-                    对话响度信息，如 ITU-1770-4 所定义。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;album_anchored_loudness
 
-                album_anchored_loudness
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;专辑响度信息，如 ITU-1770-4 所定义。
 
-                    专辑响度信息，如 ITU-1770-4 所定义。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;annotations
 
-        annotations
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;描述混音的关键字 = 值字符串，其中 "key" 是符合 BCP-47 规范的字符串，用于指定 "value" 字符串的语言。"key" 必须与所有子混音元素注释中的键相同
 
-            描述混音的关键字 = 值字符串，其中 "key" 是符合 BCP-47 规范的字符串，用于指定 "value" 字符串的语言。"key" 必须与所有子混音元素注释中的键相同
-
-    例如，要从几个 WAV 输入文件创建一个可扩展的 5.1 IAMF 文件：
+&nbsp;&nbsp;&nbsp;&nbsp;例如，要从几个 WAV 输入文件创建一个可扩展的 5.1 IAMF 文件：
 
 ```shell
 ffmpeg -i front.wav -i back.wav -i center.wav -i lfe.wav
@@ -1289,7 +1211,7 @@ submix=parameter_id=100:parameter_rate=48000|element=stg=0:parameter_id=100:anno
 -streamid 0:0 -streamid 1:1 -streamid 2:2 -streamid 3:3 output.iamf
 ```
 
-    要将两个流组（音频元素和混合演示）从具有四个流的输入 IAMF 文件复制到 mp4 输出：
+&nbsp;&nbsp;&nbsp;&nbsp;要将两个流组（音频元素和混合演示）从具有四个流的输入 IAMF 文件复制到 mp4 输出：
 
 ```shell
 ffmpeg -i input.iamf -c:a copy -stream_group map=0=0:st=0:st=1:st=2:st=3 -stream_group map=0=1:stg=0
@@ -1298,21 +1220,21 @@ ffmpeg -i input.iamf -c:a copy -stream_group map=0=0:st=0:st=1:st=2:st=3 -stream
 
 -target *type* (*output*)
 
-    指定目标文件类型（`vcd`, `svcd`, `dvd`, `dv`, `dv50`）。可以在类型前加上 `pal-`、`ntsc-` 或 `film-` 前缀以使用相应的标准。所有格式选项（比特率、编解码器、缓冲区大小）将自动设置。您可以直接输入以下命令：
+&nbsp;&nbsp;&nbsp;&nbsp;指定目标文件类型（`vcd`, `svcd`, `dvd`, `dv`, `dv50`）。可以在类型前加上 `pal-`、`ntsc-` 或 `film-` 前缀以使用相应的标准。所有格式选项（比特率、编解码器、缓冲区大小）将自动设置。您可以直接输入以下命令：
 
 ```shell
 ffmpeg -i myfile.avi -target vcd /tmp/vcd.mpg
 ```
 
-    不过，只要您确保这些选项不会与标准冲突，也可以指定额外的选项，例如：
+&nbsp;&nbsp;&nbsp;&nbsp;不过，只要您确保这些选项不会与标准冲突，也可以指定额外的选项，例如：
 
 ```shell
 ffmpeg -i myfile.avi -target vcd -bf 2 /tmp/vcd.mpg
 ```
 
-    为每个目标设置的参数如下。
+&nbsp;&nbsp;&nbsp;&nbsp;为每个目标设置的参数如下。
 
-    VCD
+&nbsp;&nbsp;&nbsp;&nbsp;VCD
 
 ```
 pal:
@@ -1337,7 +1259,7 @@ film:
 -codec:a mp2 -b:a 224k
 ```
 
-    SVCD
+&nbsp;&nbsp;&nbsp;&nbsp;SVCD
 
 ```
 pal:
@@ -1362,7 +1284,7 @@ film:
 -codec:a mp2 -b:a 224k
 ```
 
-    DVD
+&nbsp;&nbsp;&nbsp;&nbsp;DVD
 
 ```
 pal:
@@ -1387,7 +1309,7 @@ film:
 -codec:a ac3 -b:a 448k
 ```
 
-    DV
+&nbsp;&nbsp;&nbsp;&nbsp;DV
 
 ```
 pal:
@@ -1406,66 +1328,66 @@ film:
 -ar 48000 -ac 2
 ```
 
-    `dv50` 目标与 `dv` 目标相同，唯一的区别是为所有三种标准（PAL、NTSC、FILM）设置的像素格式为 `yuv422p`。
+&nbsp;&nbsp;&nbsp;&nbsp;`dv50` 目标与 `dv` 目标相同，唯一的区别是为所有三种标准（PAL、NTSC、FILM）设置的像素格式为 `yuv422p`。
 
-    用户为上述任何参数设置的值都将覆盖目标预设值。在这种情况下，输出可能不符合目标标准。
+&nbsp;&nbsp;&nbsp;&nbsp;用户为上述任何参数设置的值都将覆盖目标预设值。在这种情况下，输出可能不符合目标标准。
 
 -dn (*input/output*)
 
-    作为输入选项时，阻止文件中的所有数据流被过滤或自动选择或映射到任何输出。参见 `-discard` 选项以单独禁用流。
+&nbsp;&nbsp;&nbsp;&nbsp;作为输入选项时，阻止文件中的所有数据流被过滤或自动选择或映射到任何输出。参见 `-discard` 选项以单独禁用流。
 
-    作为输出选项时，禁用数据记录，即自动选择或映射任何数据流。对于完全的手动控制，请参阅 `-map` 选项。
+&nbsp;&nbsp;&nbsp;&nbsp;作为输出选项时，禁用数据记录，即自动选择或映射任何数据流。对于完全的手动控制，请参阅 `-map` 选项。
 
 -dframes *number* (*output*)
 
-    设置要输出的数据帧数量。这是 `-frames:d` 的过时别名，建议使用后者代替。
+&nbsp;&nbsp;&nbsp;&nbsp;设置要输出的数据帧数量。这是 `-frames:d` 的过时别名，建议使用后者代替。
 
 -frames[:*stream_specifier*] *framecount* (*output,per-stream*)
 
-    在写入流后停止，当达到 framecount 帧数时。
+&nbsp;&nbsp;&nbsp;&nbsp;在写入流后停止，当达到 framecount 帧数时。
 
 -q[:*stream_specifier*] *q* (*output,per-stream*)
 -qscale[:*stream_specifier*] *q* (*output,per-stream*)
 
-    使用固定的质量比例（VBR）。*q/qscale* 的含义取决于编解码器。如果在没有 *stream_specifier* 的情况下使用 *qscale*，则它仅适用于视频流，这是为了保持与以前行为的兼容性，并且通常不是在没有 stream_specifier 的情况下使用时所期望的结果，因为不打算对音频和视频两个不同编解码器指定相同的编解码器特定值。
+&nbsp;&nbsp;&nbsp;&nbsp;使用固定的质量比例（VBR）。*q/qscale* 的含义取决于编解码器。如果在没有 *stream_specifier* 的情况下使用 *qscale*，则它仅适用于视频流，这是为了保持与以前行为的兼容性，并且通常不是在没有 stream_specifier 的情况下使用时所期望的结果，因为不打算对音频和视频两个不同编解码器指定相同的编解码器特定值。
 
 -filter[:*stream_specifier*] *filtergraph* (*output,per-stream*)
 
-    创建由 *filtergraph* 描述的滤镜图并用它来过滤流。
+&nbsp;&nbsp;&nbsp;&nbsp;创建由 *filtergraph* 描述的滤镜图并用它来过滤流。
 
-    *filtergraph* 是应用于流的滤镜图的描述，必须有一个与流类型相同的单一输入和单一输出。在滤镜图中，输入关联到标签 `in`，输出关联到标签 `out`。有关滤镜图语法的更多信息，请参阅 ffmpeg-filters 手册。
+&nbsp;&nbsp;&nbsp;&nbsp;*filtergraph* 是应用于流的滤镜图的描述，必须有一个与流类型相同的单一输入和单一输出。在滤镜图中，输入关联到标签 `in`，输出关联到标签 `out`。有关滤镜图语法的更多信息，请参阅 ffmpeg-filters 手册。
 
-    如果您想创建具有多个输入和/或输出的滤镜图，请参阅 -filter_complex 选项。
+&nbsp;&nbsp;&nbsp;&nbsp;如果您想创建具有多个输入和/或输出的滤镜图，请参阅 -filter_complex 选项。
 
 -reinit_filter[:*stream_specifier*] *integer* (*input,per-stream*)
 
-    这个布尔选项决定当输入帧参数中途改变时，是否重新初始化与此流关联的滤镜图。此选项默认启用，因为大多数视频和所有音频滤镜无法处理输入帧属性的变化。重新初始化时，现有的滤镜状态将丢失，例如一些滤镜中可用的帧计数 `n` 引用。重新初始化时缓冲的任何帧也将丢失。对于视频，触发重新初始化的属性包括帧分辨率或像素格式；对于音频，包括样本格式、采样率、声道数量或声道布局。
+&nbsp;&nbsp;&nbsp;&nbsp;这个布尔选项决定当输入帧参数中途改变时，是否重新初始化与此流关联的滤镜图。此选项默认启用，因为大多数视频和所有音频滤镜无法处理输入帧属性的变化。重新初始化时，现有的滤镜状态将丢失，例如一些滤镜中可用的帧计数 `n` 引用。重新初始化时缓冲的任何帧也将丢失。对于视频，触发重新初始化的属性包括帧分辨率或像素格式；对于音频，包括样本格式、采样率、声道数量或声道布局。
 
 -filter_threads *nb_threads* (*global*)
 
-    定义用于处理滤镜管道的线程数。每个管道将生成一个线程池，其中包含此数量的线程用于并行处理。默认值是可用的 CPU 数量。
+&nbsp;&nbsp;&nbsp;&nbsp;定义用于处理滤镜管道的线程数。每个管道将生成一个线程池，其中包含此数量的线程用于并行处理。默认值是可用的 CPU 数量。
 
 -pre[:*stream_specifier*] *preset_name* (*output,per-stream*)
 
-    为匹配的流指定预设名称。
+&nbsp;&nbsp;&nbsp;&nbsp;为匹配的流指定预设名称。
 
 -stats (*global*)
 
-    以 "info" 级别的日志记录编码进度/统计信息（参见 `-loglevel`）。默认是开启的，要显式禁用它需要指定 `-nostats`。
+&nbsp;&nbsp;&nbsp;&nbsp;以 "info" 级别的日志记录编码进度/统计信息（参见 `-loglevel`）。默认是开启的，要显式禁用它需要指定 `-nostats`。
 
 -stats_period time (*global*)
 
-    设置更新编码进度/统计信息的时间间隔。默认是 0.5 秒。
+&nbsp;&nbsp;&nbsp;&nbsp;设置更新编码进度/统计信息的时间间隔。默认是 0.5 秒。
 
 -progress *url* (*global*)
 
-    将程序友好的进度信息发送到指定的 URL。
+&nbsp;&nbsp;&nbsp;&nbsp;将程序友好的进度信息发送到指定的 URL。
 
-    进度信息会在编码过程中定期以及结束时写入。它由 "*key=value*" 格式的行组成，其中 *key* 仅包含字母数字字符。每组进度信息的最后一项 key 总是 "progress"，其值为 "continue" 或 "end"。
+&nbsp;&nbsp;&nbsp;&nbsp;进度信息会在编码过程中定期以及结束时写入。它由 "*key=value*" 格式的行组成，其中 *key* 仅包含字母数字字符。每组进度信息的最后一项 key 总是 "progress"，其值为 "continue" 或 "end"。
 
-    更新周期可以通过 `-stats_period` 设置。
+&nbsp;&nbsp;&nbsp;&nbsp;更新周期可以通过 `-stats_period` 设置。
 
-    例如，将进度信息记录到标准输出：
+&nbsp;&nbsp;&nbsp;&nbsp;例如，将进度信息记录到标准输出：
 
 ```shell
 ffmpeg -progress pipe:1 -i in.mkv out.mkv
@@ -1473,45 +1395,44 @@ ffmpeg -progress pipe:1 -i in.mkv out.mkv
 
 -stdin
 
-    启用标准输入上的交互。默认情况下启用，除非标准输入用作输入。要显式禁用交互，需要指定 `-nostdin`。
+&nbsp;&nbsp;&nbsp;&nbsp;启用标准输入上的交互。默认情况下启用，除非标准输入用作输入。要显式禁用交互，需要指定 `-nostdin`。
 
-    在 ffmpeg 处于后台进程组时，禁用标准输入上的交互是有用的。大约相同的效果可以通过 `ffmpeg ... < /dev/null` 实现，但这需要一个 shell。
+&nbsp;&nbsp;&nbsp;&nbsp;在 ffmpeg 处于后台进程组时，禁用标准输入上的交互是有用的。大约相同的效果可以通过 `ffmpeg ... < /dev/null` 实现，但这需要一个 shell。
 
 -debug_ts (*global*)
 
-    打印时间戳/延迟信息。默认情况下关闭。此选项主要用于测试和调试目的，且输出格式可能会从一个版本到另一个版本发生变化，因此不应被便携脚本使用。
+&nbsp;&nbsp;&nbsp;&nbsp;打印时间戳/延迟信息。默认情况下关闭。此选项主要用于测试和调试目的，且输出格式可能会从一个版本到另一个版本发生变化，因此不应被便携脚本使用。
 
-    另见选项 `-fdebug ts`。
+&nbsp;&nbsp;&nbsp;&nbsp;另见选项 `-fdebug ts`。
 
 -attach *filename* (*output*)
 
-    向输出文件添加附件。这支持一些格式，如 Matroska，用于例如字幕渲染中使用的字体。附件实现为特定类型的流，因此这个选项会向文件添加一个新的流。然后可以像平常一样在这个流上使用每个流的选项。通过此选项创建的附件流将在所有其他流（即通过 `-map` 或自动映射创建的流）之后创建。
+&nbsp;&nbsp;&nbsp;&nbsp;向输出文件添加附件。这支持一些格式，如 Matroska，用于例如字幕渲染中使用的字体。附件实现为特定类型的流，因此这个选项会向文件添加一个新的流。然后可以像平常一样在这个流上使用每个流的选项。通过此选项创建的附件流将在所有其他流（即通过 `-map` 或自动映射创建的流）之后创建。
 
-    注意：对于 Matroska，您还需要设置 mimetype 元数据标签：
+&nbsp;&nbsp;&nbsp;&nbsp;注意：对于 Matroska，您还需要设置 mimetype 元数据标签：
 
 ```shell
 ffmpeg -i INPUT -attach DejaVuSans.ttf -metadata:s:2 mimetype=application/x-truetype-font out.mkv
 ```
-
-（假设附件流将是输出文件中的第三个流）。
+&nbsp;&nbsp;&nbsp;&nbsp;（假设附件流将是输出文件中的第三个流）。
 
 -dump_attachment[:*stream_specifier*] *filename* (*input,per-stream*)
 
-    将匹配的附件流提取到名为 *filename* 的文件中。如果 *filename* 为空，则使用 `filename` 元数据标签的值。
+&nbsp;&nbsp;&nbsp;&nbsp;将匹配的附件流提取到名为 *filename* 的文件中。如果 *filename* 为空，则使用 `filename` 元数据标签的值。
 
-    例如，将第一个附件提取到名为 'out.ttf' 的文件中：
+&nbsp;&nbsp;&nbsp;&nbsp;例如，将第一个附件提取到名为 'out.ttf' 的文件中：
 
 ```shell
 ffmpeg -dump_attachment:t:0 out.ttf -i INPUT
 ```
 
-    将所有附件提取到由 `filename` 标签确定的文件中：
+&nbsp;&nbsp;&nbsp;&nbsp;将所有附件提取到由 `filename` 标签确定的文件中：
 
 ```shell
 ffmpeg -dump_attachment:t "" -i INPUT
 ```
 
-技术说明 - 附件是作为编解码器额外数据实现的，因此实际上此选项可用于从任何流（而不仅仅是附件）中提取额外数据。
+&nbsp;&nbsp;&nbsp;&nbsp;技术说明 - 附件是作为编解码器额外数据实现的，因此实际上此选项可用于从任何流（而不仅仅是附件）中提取额外数据。
 
 ### 5.5 Video Options
 
