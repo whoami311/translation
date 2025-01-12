@@ -671,3 +671,22 @@ struct Car
 };
 ```
 
+现在，您可能期望在初始化Car时看到 `make_unique` 或 `make_shared` 的调用。但我们不会这样做。相反，我们将使用 Boost.DI 来进行依赖注入。首先，我们将定义一个绑定，将`ILogger` 绑定到 `ConsoleLogger`；这基本上意味着“任何时候有人请求 `ILogger`，就给他们一个 `ConsoleLogger`”。
+
+```c++
+auto injector = di::make_injector(
+    di::bind<ILogger>().to<ConsoleLogger>()
+);
+```
+
+既然我们已经配置好了注入器，现在可以使用它来创建一辆汽车：
+
+```c++
+auto car = injector.create<shared_ptr<Car>>();
+```
+
+上述代码创建了一个指向完全初始化的 `Car` 对象的 `shared_ptr<Car>`，这正是我们所期望的结果。这种方法的优点在于，要更改使用的日志记录器类型，我们可以在一个地方（`bind`调用）进行修改，所有出现 `ILogger` 的地方现在都可以使用我们提供的其他日志记录组件。这种方法也帮助我们进行单元测试，并允许我们使用存根（stubs）或空对象模式（Null Object pattern）来代替模拟对象（mocks）。
+
+### Time for Patterns!
+
+在理解了SOLID设计原则之后，我们已经准备好来审视设计模式本身了。系好安全带；这将是一段漫长（但希望不会无聊）的旅程！
