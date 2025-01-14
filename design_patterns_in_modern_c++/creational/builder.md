@@ -219,3 +219,177 @@ struct Tag{
 - 通过名称和一系列子元素初始化的标签
 
 第二种情况更有趣；我们将使用类型为 `std::vector` 的参数：
+
+```c++
+struct Tag
+{
+  ...
+  protected:
+    Tag(const std::string& name, const std::string& text)
+      : name{name}, text{text} {}
+
+    Tag(const std::string& name, const std::vector<Tag>& children)
+      : name{name}, children{children} {}
+};
+```
+
+现在我们可以从这个 `Tag` 类继承，但仅用于有效的 HTML 标签（从而约束我们的 DSL）。让我们定义两个标签：一个用于段落，另一个用于图像：
+
+```c++
+struct P : Tag
+{
+  explicit P(const std::string& text)
+    : Tag{"p", text} {}
+
+  p(std::initializer_list<Tag> children)
+    : Tag("p", children) {}
+
+};
+
+struct IMG : Tag
+{
+  explicit IMG(const std::string& url)
+    : Tag{"img", ""}
+  {
+    attributes.emplace_back({"src", utl});
+  }
+};
+```
+
+上述构造函数进一步约束了我们的 API。根据这些构造函数，一个段落只能包含文本或一组子元素。而图像不能包含其他标签，但必须有一个名为 img 的属性，并带有提供的地址。
+
+现在，借助统一初始化以及我们创建的所有构造函数，我们可以编写如下代码：
+
+```c++
+std::cout << 
+
+  P {
+    IMG { "http://pokemon.com/pikachu.png" }
+  }
+
+  << std::endl;
+```
+
+这不是很棒吗？我们为段落和图像构建了一个小型 DSL，并且这个模型可以很容易地扩展以支持其他标签。而且，完全不需要使用 `add_child()` 调用！
+
+## Composite Builder
+
+我们将以一个使用多个构建器来构建单个对象的例子来结束对构建器模式的讨论。假设我们决定记录一些关于一个人的信息：
+
+```c++
+class Person
+{
+  // address
+  std::string street_address, post_code, city;
+
+  // employment
+  std::string company_name, position;
+  int annual_income = 0;
+
+  Person() {}
+};
+```
+
+`Person` 有两个方面：地址和就业信息。如果我们希望为每个方面都有单独的构建器——我们如何提供最便捷的 API 呢？为了实现这一点，我们将构建一个复合构建器。这个构造并不简单，所以请留意——即使我们想要为工作和地址信息分别创建构建器，我们也至少会创建四个不同的类。
+
+我在本书中完全避免使用 UML，但这是唯一一个类图有帮助的情况，所以这就是我们实际上将要构建的内容：
+
+![Person uml](img/4.png)
+
+我们将第一个类命名为PersonBuilderBase：
+
+```c++
+class PersonBuildBase
+{
+protected:
+  Person& person;
+  explicit PersonBuildBase(Person& person)
+    : person{ person }
+  {
+  }
+public:
+  operator Person()
+  {
+    return std::move(person);
+  }
+
+  // builder facets
+
+  PersonAddBuilder lives() const;
+  PersonJobBuilder works() const;
+};
+```
+
+这比我们之前简单的构建器复杂得多，因此让我们逐一讨论每个成员：
+
+- `person` 引用是正在构建的对象的引用。这看起来可能非常奇怪，但这是故意为子构建器设计的。请注意，`Person` 的实际存储并不在这个类中。这一点至关重要！根类只持有一个引用，而不是构造的对象本身。
+- reference-assigning constructor 是 `protected`，以便只有继承者（如 `PersonAddressBuilder` 和 `PersonJobBuilder`）可以使用它。
+- `operator Person` 是我们之前用过的技巧。这里假设 `Person` 有一个正确定义的移动构造函数——像 `ReSharper` 这样的工具可以轻松生成一个。
+- `lives()` 和 `works()` 是返回构建器不同方面的函数：这些子构建器分别初始化地址和就业信息。
+
+现在，前面的基础类中唯一缺失的是实际被构建的对象。它在哪里呢？实际上，它存储在一个我们将称之为 `PersonBuilder` 的继承者中。这就是我们期望用户实际使用的类：
+
+```c++
+class PersonBuilder : public PersonBuilderBase
+{
+  Person p; // object being built
+public:
+  PersonBuilder() : PersonBuilderBase{p} {}
+};
+```
+
+所以，这里是实际构建对象的地方。这个类并不是为了被继承：它只是一个工具类，用于让我们启动设置构建器的过程。
+
+为了了解我们为什么最终会有不同的 `public` 和 `protected` 的构造函数，让我们来看看其中一个子构建器的实现：
+
+```c++
+class PersonAddressBuilder : public PersonBuilderBase
+{
+  typedef PersonAddressBuilder self;
+public:
+  explicit PersonAddressBuilder(Person& person)
+    : PersonBuilderBase{ person } {}
+
+  self& at(std::string street_address)
+  {
+    person.street_address = street_address;
+    return *this;
+  }
+
+  self& with_postcode(std::string post_code) { ... }
+
+  self& in(std::string city) { ... }
+};
+```
+
+如您所见，`PersonAddressBuilder` 为构建一个人的地址提供了一个流畅接口。请注意，它实际上继承自 `PersonBuilderBase`（这意味着它已经获得了 `lives()` 和 `works()`成员函数），并调用基类构造函数，传递一个引用。但它并不继承自 `PersonBuilder` ——如果这样做的话，我们将创建过多的 `Person` 实例，而事实上我们只需要一个。
+
+如您所料，`PersonJobBuilder` 以相同的方式实现。这两个类以及 `PersonBuilder` 都在 `Person` 类内部被声明为友元类，以便能够访问其私有成员。
+
+现在，到了您期待的时刻：这些构建器的实际使用示例：
+
+```c++
+Person p = Person::create()
+  .lives().at("123 London Road")
+           .with_postcode("SW1 1GB")
+           .in("London")
+  .works().at("ProgramSoft")
+          .as_a("Consultant")
+          .earning(10e6);
+```
+
+您能看出来这里发生了什么吗？我们使用 `create()` 函数获取一个构建器，并使用 `lives()` 函数来获取一个 `PersonAddressBuilder`，但在完成地址信息的初始化后，我们只需调用 `works()` 并切换到使用 `PersonJobBuilder`。
+
+当我们完成构建过程时，我们使用与之前相同的技巧将正在构建的对象转换为 `Person`。请注意，一旦这样做，构建器就不可再用了，因为我们已经使用 `std::move()` 移动了 `Person` 对象。
+
+## Summary
+
+Builder 模式的目标是定义一个完全致力于复杂对象或对象集的分步构建的组件。我们观察到了一个 Builder 的以下关键特性：
+
+- Builder 可以拥有一个流畅接口，可用于通过单个调用链进行复杂的构建。为了支持这一点，构建器函数应当返回 `this` 或 `*this`。
+- 为了强制 API 用户使用 Builder，我们可以使目标对象的构造函数不可访问，然后定义一个静态的 `create()` 函数，该函数返回 builder。
+- 通过定义适当的转换操作符，builder 可以被隐式转换为目标对象本身。
+- 借助统一初始化语法，C++ 中也可以实现 Groovy 风格的 builder。这种方法非常通用，允许创建多样化的 DSL（领域特定语言）。
+- 单个 builder 接口可以暴露多个 subbuilder 。通过巧妙地使用继承和流畅接口，可以从一个 builder 轻松跳转到另一个。
+
+再次重申我之前提到的一点，当对象的构建过程非同寻常时，使用构建器模式是有意义的。对于那些可以通过有限数量且命名合理的构造函数参数无歧义地构建的简单对象来说，应该直接使用构造函数（或依赖注入），而不必特意使用 Builder。
