@@ -231,3 +231,58 @@ jane.name = "Jane"; // and so on
 
 ## Prototype Factory
 
+如果您有预定义的对象想要复制，您实际上应该将它们存储在哪里呢？全局变量？也许是。事实上，假设我们的公司既有主办公室也有辅助办公室。我们可以像这样声明全局变量：
+
+```c++
+Contact main{ "", new Address{ "123 East Dr", "London", 0 } };
+Contact aux{ "", new Address{ "123B East Dr", "London", 0 } };
+```
+
+例如，我们可以将这些定义放入 `Contact.h` 中，这样使用 `Contact` 类的任何人都能够取用这些全局变量并复制它们。但一个更合理的方法是拥有一个专门的类来存储原型，并根据需求分发定制化的原型副本。这将给我们带来额外的灵活性：例如，我们可以创建实用函数并分发正确初始化的 `unique_ptr`：
+
+```c++
+struct EmployeeFactory
+{
+  static Contact main;
+  static Contact aux;
+
+  static unique_ptr<Contact> NewMainOfficeEmployee(string name, int suite)
+  {
+    return NewEmployee(name, suite, main);
+  }
+
+  static unique_ptr<Contact> NewAuxOfficeEmployee(string name, int suite)
+  {
+    return NewEmployee(name, suite, aux);
+  }
+
+private:
+  static unique_ptr<Contact> NewEmployee(string name, int suite, Contact& proto)
+  {
+    auto result = make_unique<Contact>(proto);
+    result->name = name;
+    result->address->suite = suite;
+    return result;
+  }
+};
+```
+
+前述内容现在可以如下使用：
+
+```c++
+auto john = EmployeeFactory::NewAuxOfficeEmployee("John Doe", 123);
+auto jane = EmployeeFactory::NewMainOfficeEmployee("Jane Doe", 125);
+```
+
+为什么使用工厂？好吧，考虑这样一种情况：我们复制了一个原型，然后忘记了自定义它。这将导致一些本应包含实际数据的地方出现空白字符串和零。通过使用我们在讨论工厂模式时提到的方法，我们可以例如将所有非完全初始化的构造函数设为 `private`，将 `EmployeeFactory` 声明为友元类，这样一来——客户端就无法获得部分构造的 `Contact` 对象了。
+
+## Summary
+
+原型设计模式体现了对象的深拷贝概念，使得您不必每次都进行完全初始化，而是可以取用一个预先制作好的对象，复制它，稍作调整，然后独立于原对象使用。
+
+在 C++ 中实现原型模式实际上只有两种方法，且两者都需要手动操作。它们是：
+
+- 编写正确复制对象的代码，即执行深度复制。这可以在拷贝构造函数 / 拷贝赋值运算符中完成，也可以在单独的成员函数中完成。
+- 编写支持序列化 / 反序列化的代码，然后利用这一机制通过立即序列化再反序列化来实现克隆。这种方法会带来额外的计算成本；其重要性取决于您需要进行复制的频率。与使用拷贝构造函数相比，这种方法的唯一优势在于您顺便获得了序列化功能。
+
+无论您选择哪种方法，都不可避免地需要一些工作量。代码生成工具（例如 ReSharper、CLion）如果决定采用这两种方法中的任何一种，都可以在此提供帮助。最后，请记住，如果您以值的方式存储数据，实际上并不会遇到问题。
