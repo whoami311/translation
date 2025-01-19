@@ -1,72 +1,105 @@
 # State
 
+我必须承认：我的行为是由我的状态所控制的。如果我没有得到足够的睡眠，我会感到有点疲倦。如果我喝了酒，我就不会开车。所有这些都是 *state*（状态），它们决定了我的行为：我感觉如何，以及我能做什么和不能做什么。
+
+当然，我可以从一个状态转换到另一个状态。我可以去喝杯咖啡，这将使我从困倦转变为警觉（我希望如此！）。因此，我们可以把咖啡看作是一个 *trigger*（触发器），它导致了从困倦到警觉的转变。这里，让我笨拙地为你说明一下：
+
 ```
         coffee
 sleepy --------> alert
 ```
 
+所以，状态设计模式是一个非常简单的概念：状态控制行为；状态可以改变；唯一有待商榷的是谁触发了状态的变化。
+
+从根本上说，有两种方式：
+
+- 状态是实际的类，具有行为，这些行为会在不同状态之间切换。
+- 状态和转换只是枚举。我们有一个称为状态机的特殊组件来执行实际的转换。
+
+这两种方法都是可行的，但实际上是第二种方法更为常见。我们将看一下这两种方法，但我必须承认我会简略地提及第一种，因为这并不是人们通常的做法。
+
 ## State-Driven State Transitions
+
+我们将从最简单的例子开始：一个电灯开关。它只能处于 *on* 和 *off* 两种状态。我们将构建一个模型，其中任何状态都能够切换到其他状态：虽然这反映了“经典”的状态设计模式实现（根据 GoF 书籍），但这并不是我推荐的做法。
+
+首先，让我们建模这个电灯开关：它所拥有的只是一个状态和一些从一个状态切换到另一个状态的手段：
 
 ```c++
 class LightSwitch
 {
-    State *state;
+  State *state;
 public:
-    LightSwitch()
-    {
-        state = new OffState();
-    }
-    void set_state(State* state)
-    {
-        this->state = state;
-    }
+  LightSwitch()
+  {
+    state = new OffState();
+  }
+  void set_state(State* state)
+  {
+    this->state = state;
+  }
 };
 ```
+
+这一切看起来都非常合理。我们现在可以定义状态，在这个特定的情况下，它将是一个实际的类：
 
 ```c++
 struct State
 {
-    virtual void on(LightSwitch *ls)
-    {
-        cout << "Light is already on\n";
-    }
+  virtual void on(LightSwitch *ls)
+  {
+      cout << "Light is already on\n";
+  }
 
-    virtual void off(LightSwitch *ls)
-    {
-        cout << "Light is already off\n"
-    }
+  virtual void off(LightSwitch *ls)
+  {
+      cout << "Light is already off\n"
+  }
 };
 ```
+
+这个实现远非直观，因此我们需要慢慢且仔细地讨论它，因为从一开始，`State` 类的任何东西看起来都没有意义。
+
+首先，`State` 并不是抽象的！你可能会认为一个无法达到（或没有理由达到）的状态应该是抽象的。但它并不是。
+
+其次，`State` 允许从一个状态切换到另一个状态。这……对于一个理智的人来说，是没有意义的。想象一下电灯开关：是开关改变了状态。状态本身并不期望改变自己，但这里的情况似乎正是如此。
+
+第三，也许是最令人困惑的是，`State::on/off` 的默认行为声称我们已经处于该状态了！随着我们实现其余的例子，这一点会逐渐清晰起来。
+
+我们现在来实现 `On` 和 `Off` 状态：
 
 ```c++
 struct OnState : State
 {
-    OnState() { cout << "Light turned on\n"; }
-    void off(LightSwitch* ls) override;
+  OnState() { cout << "Light turned on\n"; }
+  void off(LightSwitch* ls) override;
 };
 
 struct OffState : State
 {
-    OffState() { cout << "Light turned off\n"; }
-    void on(LightSwitch* ls) override;
+  OffState() { cout << "Light turned off\n"; }
+  void on(LightSwitch* ls) override;
 };
 ```
+
+`OnState::off` 和 `OffState::on` 的实现允许状态本身切换到另一个状态！以下是它的样子：
 
 ```c++
 void OnState::off(LightSwitch* ls)
 {
-    cout << "Switching light off...\n";
-    ls->set_state(new OffState());
-    delete this;
+  cout << "Switching light off...\n";
+  ls->set_state(new OffState());
+  delete this;
 }   // same for OffState::on
 ```
+
+
 
 ```c++
 class LightSwitch
 {
-    ...
-    void on() { state->on(this); }
-    void off() { state->off(this); }
+  ...
+  void on() { state->on(this); }
+  void off() { state->off(this); }
 };
 ```
 
