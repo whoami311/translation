@@ -6,7 +6,7 @@
 
 本章同时涵盖了两个GoF（设计模式的经典著作《设计模式：可复用面向对象软件的基础》中的）模式：工厂方法（Factory Method）和抽象工厂（Abstract Factory）。这两个模式密切相关，因此我们将一起讨论它们。
 
-## Scenario
+## 场景
 
 让我们从一个激励性的例子开始。假设您想要存储关于笛卡尔空间中一个点（Point）的信息。于是，您可能会实现如下内容：
 
@@ -317,7 +317,7 @@ DrinkWithVolumeFactory::make_drink(const string& name)
 
 然后这可以像之前一样被使用。
 
-## Summary
+## 总结
 
 让我们回顾一下术语：
 

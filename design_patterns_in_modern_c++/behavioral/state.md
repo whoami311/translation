@@ -385,7 +385,7 @@ phone.process_event(CallDialed{});
 
 这就是如何定义一个更为复杂、工业级强度的状态机。
 
-## Summary
+## 总结
 
 首先，值得强调的是，Boost.MSM 是 Boost 中两种状态机实现之一，另一种是 Boost.Statechart。我相当确定还有很多其他的状态机实现。
 

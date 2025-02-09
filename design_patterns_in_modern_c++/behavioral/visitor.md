@@ -310,7 +310,7 @@ void main()
 }
 ```
 
-## Implementing an Additional Visitor
+### Implementing an Additional Visitor
 
 那么，这种方法的优势是什么呢？优势在于您只需在整个层级结构中实现一次 `accept()` 成员函数。之后您将不再需要触层级结构中的任何成员。例如：假设现在您想要有一种方法来评估表达式的结果，这很简单：
 
@@ -470,7 +470,7 @@ std::visit([](auto& arg) {
 }, house);
 ```
 
-## Summary
+## 总结
 
 访问者设计模式允许我们为对象层级结构中的每个元素添加一些行为。我们已经看到的方法包括：
 

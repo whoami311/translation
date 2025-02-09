@@ -290,7 +290,7 @@ layer.connect_to(layer2);
 
 更不用说，如果您引入了一个新的容器（比如说某种 `NeuronRing`），您所需要做的只是从 `SomeNeurons<NeuronRing>` 继承，并实现 `begin()` / `end()`，新的类将立即可以与所有的 `Neuron` 和 `NeuronLayer` 连接。
 
-## Summary
+## 总结
 
 组合设计模式允许我们为单个对象和对象集合提供相同的接口。这可以通过显式使用接口成员来实现，或者通过鸭子类型来实现——例如，基于范围的 for 循环不要求您继承任何东西，而是基于类型具有看起来合适的 `begin()` / `end()`成员。
 

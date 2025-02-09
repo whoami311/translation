@@ -17,7 +17,7 @@
 
 我们将手动构建这个计算器，而不依赖任何解析框架。这应该能够突出解析文本输入所涉及的一些复杂性。
 
-## Lexing
+### Lexing
 
 解释表达式的第一个步骤被称为词法分析（lexing），它涉及将字符序列转换为符号（tokens）序列。一个符号通常是原始的语法元素，最终我们应该得到这些符号的平坦序列。在我们的情况下，一个符号可以是：
 
@@ -97,7 +97,7 @@ for (int j = i + 1; j < input.size(); ++j)
 
 实际上，当我们持续读取（抽取）数字时，我们将它们添加到缓冲区。完成后，我们根据整个缓冲区创建一个 `Token`，并将其添加到结果 `vector` 中。
 
-## Parsing
+### Parsing
 
 解析的过程将符号序列转换为有意义的、通常是面向对象的结构。在最顶层，通常有一个抽象的父类型是有用的，所有树的元素都实现这个类型：
 
@@ -214,7 +214,7 @@ case Token::lparen:
 
 从 C++ 的经验我们知道，为解析错误生成有意义的错误信息是非常困难的。实际上，您会发现一种称为“跳过”的现象，即在遇到不确定情况时，词法分析器或解析器将尝试跳过不正确的代码，直到遇到有意义的内容为止：这种做法正是静态分析工具所采用的，这些工具需要在用户输入不完整代码时也能正确工作。
 
-## Using Lexer and Parser
+### Using Lexer and Parser
 
 随着 `lex()` 和 `parse()` 都已实现，我们终于可以解析表达式并计算其值：
 
@@ -234,7 +234,7 @@ Boost.Spirit 是一个通过提供简洁（尽管不一定直观）的 API 来�
 
 让我用 Tlön 编程语言展示一些使用 Boost.Spirit 的例子：
 
-## Abstract Syntax Tree
+### Abstract Syntax Tree
 
 首先，您需要构建抽象语法树（AST）。在这方面，我简单地创建一个支持访问者（Visitor）设计模式的基类，因为遍历这些结构非常重要：
 
@@ -283,7 +283,7 @@ Spirit 在解析到常见的数据类型如 `std::vector` 或 `std::optional` �
 typedef variant<function_body, property, function_signature> class_member;
 ```
 
-## Parser
+### Parser
 
 Boost.Spirit 让我们可以将解析器定义为一组规则。所使用的语法非常类似于正则表达式或 BNF（Bachus-Naur Form）表示法，区别在于操作符放在符号之前，而不是之后。以下是一个示例规则：
 
@@ -319,7 +319,7 @@ wstring parse(Iterator first, Iterator last)
 
 前述内容中的类型 `TLanguagePrinter` 实际上是一个访问者（visitor），它知道如何将我们的抽象语法树（AST）渲染成另一种语言，比如 C++。
 
-## Printer
+### Printer
 
 解析了语言之后，我们可能想要编译它，或者在我的情况下，将其转换（transpile）成另一种语言。考虑到我们已经在整个 AST 层次结构中实现了 `accept()` 方法，这相对容易。
 
@@ -355,7 +355,7 @@ struct default_value_visitor : static_visitor<>
 
 然后您会调用 `accept_visitor(foo, default_value_visitor{...})`，根据变体中实际存储的对象类型，正确的重载函数将会被调用。
 
-##  Summary
+## 总结
 
 首先需要说明的是，相对来说，解释器设计模式某种程度上不常见——构建解析器的挑战在今天被认为是非本质的，这就是为什么我看到它正从许多英国大学（包括我自己的）的计算机科学课程中被移除。此外，除非您计划从事语言设计或制作静态代码分析工具等工作，否则构建解析器的技能不太可能有很高的需求。
 
