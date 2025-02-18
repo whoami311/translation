@@ -54,7 +54,7 @@ john.address.suite = 10;
 struct Contact
 {
   string name;
-  Address *address=; // pointer (or e.g., shared_ptr)
+  Address *address; // pointer (or e.g., shared_ptr)
 };
 ```
 
