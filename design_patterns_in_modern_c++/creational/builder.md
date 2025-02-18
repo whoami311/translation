@@ -296,7 +296,7 @@ class Person
 
 ![Person uml](img/4.png)
 
-我们将第一个类命名为PersonBuilderBase：
+我们将第一个类命名为 `PersonBuilderBase`：
 
 ```c++
 class PersonBuildBase
