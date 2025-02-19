@@ -105,7 +105,7 @@ Contact(const Contact& other)
   {}
 ```
 
-请注意，请注意，如果您使用 ReSharper 的复制和移动操作生成器，它还会为您提供 `operator=`，在我们的情况下，它将被定义为：
+请注意，如果您使用 ReSharper 的复制和移动操作生成器，它还会为您提供 `operator=`，在我们的情况下，它将被定义为：
 
 ```c++
 Contact& operator=(const Contact& other)
