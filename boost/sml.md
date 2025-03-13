@@ -851,14 +851,30 @@ sm.process_event(my_event{}); // will call logger appropriately
 
 - 一切开始的入口点
 
+| UML | SML |
+| - | - |
+| ![initial_state.png](img/initial_state.png) | `* "idle"_s` |
+
 ### 终止伪状态（Terminate Pseudostate）
 
 - 终止状态机的状态（无法从中逃脱）
+
+| UML | SML |
+| - | - |
+| ![terminate_state.png](img/terminate_state.png) | `sml::X` |
 
 ### 外部转换（External Transition）
 
 - 有条件地更新当前状态。
 
+| UML | SML |
+| - | - |
+| ![external_transition.png](img/external_transition.png) | `"src_state"_s + event [ guard ] / action = "dst_state"_s` |
+
 ### 匿名转换（Anonymous Transition）
 
 - 没有触发器（事件）的转换。
+
+| UML | SML |
+| - | - |
+| ![anonymous_transition.png](img/anonymous_transition.png) | `"src_state"_s = "dst_state"_s` |
