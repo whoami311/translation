@@ -303,7 +303,7 @@ struct PhoneBeingDestroyed
 
 如你可能已经猜到的，参数为你提供了对状态机以及你正在离开和进入的状态的引用。
 
-最后，我们有 * guard conditions*：这些条件决定了我们是否可以首先使用某个转换。现在，我们的布尔变量 `angry` 不是以 MSM 可用的形式存在的，所以我们需要将其包装：
+最后，我们有 *guard conditions*：这些条件决定了我们是否可以首先使用某个转换。现在，我们的布尔变量 `angry` 不是以 MSM 可用的形式存在的，所以我们需要将其包装：
 
 ```c++
 struct CanDestroyPhone
@@ -339,7 +339,7 @@ struct transition_table : mpl::vector<
 
 在上述内容中，与状态不同的是，像 `CallDialed` 这样的转换是可以在状态机类外部定义的类。它们不需要继承自任何基类，并且可以很简单甚至为空，但它们必须是类型。
 
-我们 ` transition_table` 的最后一行是最有趣的：它指定了只有在满足 `CanDestroyPhone` 保护条件的情况下，才可以尝试销毁电话，并且当电话实际上被销毁时，应该执行 `PhoneBeingDestroyed` 动作。
+我们 `transition_table` 的最后一行是最有趣的：它指定了只有在满足 `CanDestroyPhone` 保护条件的情况下，才可以尝试销毁电话，并且当电话实际上被销毁时，应该执行 `PhoneBeingDestroyed` 动作。
 
 现在，我们还可以添加一些其他的东西。首先，我们添加起始条件：由于我们使用的是 Boost.MSM，起始条件是一个 `typedef`，而不是一个变量：
 
