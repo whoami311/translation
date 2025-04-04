@@ -174,7 +174,7 @@ sm.process_event(event{}); // thread safe call
 
 ### Design
 
-![SML]()
+![design.png](img/design.png)
 
 | 组件 | 描述 |
 | - | - |
