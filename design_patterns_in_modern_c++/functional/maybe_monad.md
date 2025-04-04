@@ -1,10 +1,4 @@
-# Functional Design Patterns
-
-虽然 C++ 主要是一种面向对象的编程语言，但它对函数对象（例如 `std::function`）以及 lambda 函数的支持使得它在一定程度上可以支持单子（monads），而单子是函数式编程世界中的设计模式。不过，必须指出的是，由于对函数对象更好的处理以及有用的辅助构造（例如代数数据类型、模式匹配等），单子在函数式编程语言中更加易用。
-
-本书无意展示一个单子目录，但我确实想展示至少一个 C++ 开发者可以使用的单子示例。
-
-## Maybe Monad
+# Maybe Monad
 
 在 C++ 中，如同在许多其他语言一样，我们有不同的方式来表达值的存在或缺失。具体到 C++，我们可以使用以下任何一种方法：
 
@@ -51,8 +45,8 @@ struct Maybe {
 到目前为止，`Maybe` 看起来像是一个指针容器，没有什么特别令人兴奋的地方。它也不是非常实用，因为给定一个 `Person* p`，我们无法创建 `Maybe(p)`，这是由于我们无法从构造函数传递的参数中推导类模板参数。在这种情况下，我们还创建了一个辅助全局函数，因为函数实际上可以推导模板参数：
 
 ```c++
-template <typename T> Maybe<T>
-maybe(T* context)
+template <typename T>
+Maybe<T> maybe(T* context)
 {
   return Maybe<T>(context);
 }

@@ -27,7 +27,7 @@ struct AdditionExpression : Expression
 {
   Expression *left, *right;
 
-  A dditionExpression(Expression* const left, Expression* const right)
+  AdditionExpression(Expression* const left, Expression* const right)
     : left{left}, right{right} {}
 
   ~AdditionExpression()
