@@ -126,7 +126,7 @@ echo 'source <path/to/Fast-DDS/workspace>/install/setup.bash' >> ~/.bashrc
 
 这将在每次该用户登录后设置好环境。
 
-#### 1.3.5. Configure the CMake project
+### 1.3.5. Configure the CMake project
 
 我们将使用 CMake 工具来管理项目的构建。请使用您喜欢的文本编辑器创建一个名为 CMakeLists.txt 的新文件，并将以下代码片段复制粘贴进去。将此文件保存在工作空间的根目录下。如果您已按照这些步骤操作，该目录应为 *workspace_DDSHelloWorld*。
 
@@ -162,7 +162,7 @@ file(GLOB DDS_HELLOWORLD_SOURCES_CXX "src/*.cxx")
 
 在每一部分中，我们将补充此文件，以包含具体生成的文件。
 
-#### 1.3.6. Build the topic data type
+### 1.3.6. Build the topic data type
 
 *eProsima Fast DDS-Gen* 是一个 Java 应用程序，它使用在接口描述语言（IDL）文件中定义的数据类型生成源代码。此应用程序可以执行两种不同的操作：
 
@@ -203,7 +203,7 @@ struct HelloWorld
 - HelloWorldTypeObjectSupport.cxx：TypeObject 表示的注册代码。
 - HelloWorldTypeObjectSupport.hpp：HelloWorldTypeObjectSupport.cxx 的头文件。
 
-#### 1.3.7. Write the Fast DDS publisher
+### 1.3.7. Write the Fast DDS publisher
 
 在工作空间的 *src* 目录中运行以下命令以下载 HelloWorldPublisher.cpp 文件。
 
