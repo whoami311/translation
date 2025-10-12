@@ -364,3 +364,260 @@ int main()
 在前面的教程中，我们介绍了输入端口和输出端口，其端口类型为 `std::string`。
 
 接下来，我们将展示如何为端口分配通用的 C++ 类型。
+
+### Parsing a string
+
+BehaviorTree.CPP 支持将字符串自动转换为常见类型，例如 `int`、`long`、`double`、`bool`、`NodeStatus` 等。用户自定义类型也可以很容易地得到支持。
+
+例如：
+
+```c++
+// We want to use this custom type
+struct Position2D 
+{ 
+  double x;
+  double y; 
+};
+```
+
+为了让 XML 加载器能够从字符串实例化 `Position2D`，我们需要提供模板特化 `BT::convertFromString<Position2D>(StringView)`。
+
+`Position2D` 如何序列化为字符串由你自行决定；在这个例子中，我们只是用*分号*分隔两个数字。
+
+```c++
+// Template specialization to converts a string to Position2D.
+namespace BT
+{
+    template <> inline Position2D convertFromString(StringView str)
+    {
+        // We expect real numbers separated by semicolons
+        auto parts = splitString(str, ';');
+        if (parts.size() != 2)
+        {
+            throw RuntimeError("invalid input)");
+        }
+        else
+        {
+            Position2D output;
+            output.x     = convertFromString<double>(parts[0]);
+            output.y     = convertFromString<double>(parts[1]);
+            return output;
+        }
+    }
+} // end namespace BT
+```
+
+- `StringView` 是 C++11 中的 `std::string_view` 版本。你可以传入 `std::string` 或 `const char*`。
+- 该库提供了一个简单的 `splitString` 函数，你也可以使用其他函数，例如 `boost::algorithm::split`。
+- 我们可以使用特化的 `convertFromString<double>()`。
+
+### Example
+
+和前一节教程一样，我们可以创建两个自定义 Actions：一个向端口写入数据，另一个从端口读取数据。
+
+```c++
+class CalculateGoal: public SyncActionNode
+{
+  public:
+    CalculateGoal(const std::string& name, const NodeConfig& config):
+      SyncActionNode(name,config)
+    {}
+
+    static PortsList providedPorts()
+    {
+      return { OutputPort<Position2D>("goal") };
+    }
+
+    NodeStatus tick() override
+    {
+      Position2D mygoal = {1.1, 2.3};
+      setOutput<Position2D>("goal", mygoal);
+      return NodeStatus::SUCCESS;
+    }
+};
+
+class PrintTarget: public SyncActionNode
+{
+  public:
+    PrintTarget(const std::string& name, const NodeConfig& config):
+        SyncActionNode(name,config)
+    {}
+
+    static PortsList providedPorts()
+    {
+      // Optionally, a port can have a human readable description
+      const char*  description = "Simply print the goal on console...";
+      return { InputPort<Position2D>("target", description) };
+    }
+      
+    NodeStatus tick() override
+    {
+      auto res = getInput<Position2D>("target");
+      if( !res )
+      {
+        throw RuntimeError("error reading port [target]:", res.error());
+      }
+      Position2D target = res.value();
+      printf("Target positions: [ %.1f, %.1f ]\n", target.x, target.y );
+      return NodeStatus::SUCCESS;
+    }
+};
+```
+
+现在我们可以像往常一样连接输入/输出端口，使它们指向 Blackboard 中同一个条目。
+
+下一个示例中的行为树是一个包含 4 个动作的 Sequence：
+
+- 使用动作 `CalculateGoal` 将一个 `Position2D` 值存入条目 **GoalPosition**。
+- 调用 `PrintTarget`，其输入端口 “target” 将从 Blackboard 条目 **GoalPosition** 读取数据。
+- 使用内置动作 `Script` 将字符串 "-1;3" 分配给键 **OtherGoal**。字符串到 `Position2D` 的转换将自动完成。
+- 再次调用 `PrintTarget`，其输入端口 “target” 将从条目 `OtherGoal` 读取数据。
+
+```c++
+static const char* xml_text = R"(
+
+ <root BTCPP_format="4" >
+     <BehaviorTree ID="MainTree">
+        <Sequence name="root">
+            <CalculateGoal goal="{GoalPosition}" />
+            <PrintTarget   target="{GoalPosition}" />
+            <Script        code=" OtherGoal:='-1;3' " />
+            <PrintTarget   target="{OtherGoal}" />
+        </Sequence>
+     </BehaviorTree>
+ </root>
+ )";
+
+int main()
+{
+  BT::BehaviorTreeFactory factory;
+  factory.registerNodeType<CalculateGoal>("CalculateGoal");
+  factory.registerNodeType<PrintTarget>("PrintTarget");
+
+  auto tree = factory.createTreeFromText(xml_text);
+  tree.tickWhileRunning();
+
+  return 0;
+}
+/* Expected output:
+
+    Target positions: [ 1.1, 2.3 ]
+    Converting string: "-1;3"
+    Target positions: [ -1.0, 3.0 ]
+*/
+```
+
+## 04. Reactive and Asynchronous behaviors
+
+下一个示例展示了 `SequenceNode` 与 `ReactiveSequence` 的区别。
+
+我们将实现一个 **异步动作（Asynchronous Action）**，也就是一个需要较长时间完成的动作，在未满足完成条件时会返回 RUNNING。
+
+异步动作具有以下要求：
+
+- 在 `tick()` 方法中不应阻塞过长时间，执行流程应尽可能快速返回。
+- 如果调用了 `halt()` 方法，应尽可能快速中止执行。
+
+CAUTION：
+
+了解更多关于 **异步动作（Asynchronous Actions）** 的内容
+
+用户应当充分理解 BT.CPP 中的 并发机制（Concurrency），并学习开发自定义 异步动作（Asynchronous Actions）的最佳实践。你可以在这里找到一篇详细的文章。
+
+### StatefulActionNode
+
+**StatefulActionNode** 是实现异步动作（Asynchronous Actions）的首选方式。
+
+当你的代码包含**请求-响应模式**时，它尤其有用——即动作向另一个进程发送异步请求，并周期性检查是否收到了回复。
+
+根据收到的回复，它可能返回 SUCCESS 或 FAILURE。
+
+如果不是与外部进程通信，而是执行耗时计算，你可以将计算拆分成小的“块”，或者将计算移到另一个线程中执行（参见 AsyncThreadedAction 教程）。
+
+**StatefulActionNode** 的派生类必须重写以下虚方法，而不是 `tick()`：
+
+- `NodeStatus onStart()`：当节点处于 IDLE 状态时调用。它可以立即成功或失败，也可以返回 RUNNING。如果返回 RUNNING，下次收到 tick 时会执行 `onRunning()`。
+- `NodeStatus onRunning()`：当节点处于 RUNNING 状态时调用，返回新的状态。
+- `void onHalted()`：当该节点被树中的其他节点中止时调用。
+
+下面我们创建一个名为 **MoveBaseAction** 的示例节点：
+
+```c++
+// Custom type
+struct Pose2D
+{
+    double x, y, theta;
+};
+
+namespace chr = std::chrono;
+
+class MoveBaseAction : public BT::StatefulActionNode
+{
+  public:
+    // Any TreeNode with ports must have a constructor with this signature
+    MoveBaseAction(const std::string& name, const BT::NodeConfig& config)
+      : StatefulActionNode(name, config)
+    {}
+
+    // It is mandatory to define this static method.
+    static BT::PortsList providedPorts()
+    {
+        return{ BT::InputPort<Pose2D>("goal") };
+    }
+
+    // this function is invoked once at the beginning.
+    BT::NodeStatus onStart() override;
+
+    // If onStart() returned RUNNING, we will keep calling
+    // this method until it return something different from RUNNING
+    BT::NodeStatus onRunning() override;
+
+    // callback to execute if the action was aborted by another node
+    void onHalted() override;
+
+  private:
+    Pose2D _goal;
+    chr::system_clock::time_point _completion_time;
+};
+
+//-------------------------
+
+BT::NodeStatus MoveBaseAction::onStart()
+{
+  if ( !getInput<Pose2D>("goal", _goal))
+  {
+    throw BT::RuntimeError("missing required input [goal]");
+  }
+  printf("[ MoveBase: SEND REQUEST ]. goal: x=%f y=%f theta=%f\n",
+         _goal.x, _goal.y, _goal.theta);
+
+  // We use this counter to simulate an action that takes a certain
+  // amount of time to be completed (200 ms)
+  _completion_time = chr::system_clock::now() + chr::milliseconds(220);
+
+  return BT::NodeStatus::RUNNING;
+}
+
+BT::NodeStatus MoveBaseAction::onRunning()
+{
+  // Pretend that we are checking if the reply has been received
+  // you don't want to block inside this function too much time.
+  std::this_thread::sleep_for(chr::milliseconds(10));
+
+  // Pretend that, after a certain amount of time,
+  // we have completed the operation
+  if(chr::system_clock::now() >= _completion_time)
+  {
+    std::cout << "[ MoveBase: FINISHED ]" << std::endl;
+    return BT::NodeStatus::SUCCESS;
+  }
+  return BT::NodeStatus::RUNNING;
+}
+
+void MoveBaseAction::onHalted()
+{
+  printf("[ MoveBase: ABORTED ]");
+}
+```
+
+### Sequence VS ReactiveSequence
