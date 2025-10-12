@@ -177,3 +177,234 @@ FallbackNodes（也称为 **Selectors**）是能够表达回退策略的节点�
 尽管该库是用 C++ 编写的，但行为树本身可以在*运行时*（更准确地说，是在*部署时*）创建和组合，使用基于 XML 的脚本语言。
 
 XML 格式在这里有详细说明，但学习语法的最佳方式是通过教程实践。
+
+### The tick() callbacks
+
+任何 TreeNode 都可以被看作是一种调用**回调**的机制，也就是**运行一段代码**。这个回调具体做什么由你决定。
+
+在接下来的大多数教程中，我们的 Actions 仅仅会在控制台打印消息或休眠一段时间，以模拟耗时的计算。
+
+在生产代码中，尤其是在模型驱动开发（Model Driven Development）和组件化软件工程（Component Based Software Engineering）中，一个 Action/Condition 很可能会与系统中的其他*组件*或*服务*进行通信。
+
+```c++
+// The simplest callback you can wrap into a BT Action
+NodeStatus HelloTick()
+{
+  std::cout << "Hello World\n"; 
+  return NodeStatus::SUCCESS;
+}
+
+// Allow the library to create Actions that invoke HelloTick()
+// (explained in the tutorials)
+factory.registerSimpleAction("Hello", std::bind(HelloTick));
+```
+
+TIP：工厂可能会创建节点 `Hello` 的多个实例。
+
+### Create custom nodes with inheritance
+
+在上面的示例中，通过使用**函数指针**（依赖注入）创建了一种特定类型的 TreeNode，该节点会调用 `HelloTick`。
+
+通常，要定义自定义的 TreeNode，你应当继承自类 `TreeNode`，或更具体地继承其以下派生类之一：
+
+* `ActionNodeBase`
+* `ConditionNode`
+* `DecoratorNode`
+
+作为参考，请查看第一个教程。
+
+### Dataflow, Ports and Blackboard
+
+Ports 在第二和第三个教程中有详细说明。
+
+目前重要的是要知道：
+
+* **Blackboard** 是一个由树中所有节点共享的*键/值*存储。
+* **Ports** 是节点之间用来交换信息的一种机制。
+* Ports 通过使用 blackboard 中相同的*键*来“*连接*”。
+* 一个节点的端口数量、名称和类型必须在*编译时*（C++）已知；端口之间的连接在*部署时*（XML）完成。
+* 你可以把任意 C++ 类型作为值存储（我们使用一种类似于 `std::any` 的*类型擦除*技术）。
+
+## The XML schema
+
+在第一个教程中展示了这棵简单的树。
+
+```xml
+ <root BTCPP_format="4">
+     <BehaviorTree ID="MainTree">
+        <Sequence name="root_sequence">
+            <SaySomething   name="action_hello" message="Hello"/>
+            <OpenGripper    name="open_gripper"/>
+            <ApproachObject name="approach_object"/>
+            <CloseGripper   name="close_gripper"/>
+        </Sequence>
+     </BehaviorTree>
+ </root>
+```
+
+你可能会注意到：
+
+- 树的第一个标签是 `<root>`。它应包含**一个或多个** `<BehaviorTree>` 标签。
+- `<BehaviorTree>` 标签应具有属性 `[ID]`。
+- `<root>` 标签应具有属性 `[BTCPP_format]`。
+- 每个 TreeNode 用一个单独的标签表示。具体来说：
+
+  - 标签的名称就是在工厂（factory）中注册该 TreeNode 时使用的 **ID**。
+  - 属性 `[name]` 指的是该实例的名字，属于**可选项**。
+  - Ports 使用属性配置。在前面的示例中，动作 `SaySomething` 需要输入端口 `message`。
+
+- 就子节点数量而言：
+
+  - `ControlNodes` 包含 **1 到 N 个子节点**。
+  - `DecoratorNodes` 和 Subtrees **仅包含 1 个子节点**。
+  - `ActionNodes` 和 `ConditionNodes` **没有子节点**。
+
+### Ports Remapping and pointers to Blackboards entries
+
+如第二个教程所述，输入/输出端口可以使用 BlackBoard 中某个条目的名称进行重映射，换句话说，就是使用该**键/值对**的**键**。
+
+Blackboard 的键使用如下语法表示：`{key_name}`。
+
+在下面的示例中：
+
+- Sequence 的第一个子节点打印 "Hello"；
+- 第二个子节点读取并写入保存在名为 "my_message" 的 Blackboard 条目中的值。
+
+```xml
+ <root BTCPP_format="4" >
+     <BehaviorTree ID="MainTree">
+        <Sequence name="root_sequence">
+            <SaySomething message="Hello"/>
+            <SaySomething message="{my_message}"/>
+        </Sequence>
+     </BehaviorTree>
+ </root>
+```
+
+### Compact vs Explicit representation
+
+以下两种语法都是有效的：
+
+```xml
+ <SaySomething               name="action_hello" message="Hello World"/>
+ <Action ID="SaySomething"   name="action_hello" message="Hello World"/>
+```
+
+我们将把前一种语法称为 “**compact**”（紧凑语法），把后一种称为 “**explicit**”（显式语法）。使用显式语法表示的第一个示例将变为：
+
+```xml
+ <root BTCPP_format="4" >
+     <BehaviorTree ID="MainTree">
+        <Sequence name="root_sequence">
+           <Action ID="SaySomething"   name="action_hello" message="Hello"/>
+           <Action ID="OpenGripper"    name="open_gripper"/>
+           <Action ID="ApproachObject" name="approach_object"/>
+           <Action ID="CloseGripper"   name="close_gripper"/>
+        </Sequence>
+     </BehaviorTree>
+ </root>
+```
+
+尽管紧凑语法更方便、书写更容易，但它提供的关于 TreeNode 模型的信息太少。像 **Groot** 这样的工具要么需要显式语法，要么需要额外的信息。可以使用标签 `<TreeNodeModel>` 来添加这些信息。
+
+为了使我们树的紧凑版本与 Groot 兼容，必须按如下方式修改 XML：
+
+```xml
+ <root BTCPP_format="4" >
+     <BehaviorTree ID="MainTree">
+        <Sequence name="root_sequence">
+           <SaySomething   name="action_hello" message="Hello"/>
+           <OpenGripper    name="open_gripper"/>
+           <ApproachObject name="approach_object"/>
+           <CloseGripper   name="close_gripper"/>
+        </Sequence>
+    </BehaviorTree>
+    
+    <!-- the BT executor don't require this, but Groot does -->     
+    <TreeNodeModel>
+        <Action ID="SaySomething">
+            <input_port name="message" type="std::string" />
+        </Action>
+        <Action ID="OpenGripper"/>
+        <Action ID="ApproachObject"/>
+        <Action ID="CloseGripper"/>      
+    </TreeNodeModel>
+ </root>
+```
+
+### Subtrees
+
+正如我们在本教程中看到的，可以在一棵树中包含一个 Subtree，以避免在多个位置“复制粘贴”相同的树结构，从而降低复杂度。
+
+假设我们想把若干动作封装进名为 **"GraspObject"** 的行为树中（为简化起见，这里省略可选的 [name] 属性）。
+
+```xml
+ <root BTCPP_format="4" >
+ 
+     <BehaviorTree ID="MainTree">
+        <Sequence>
+           <Action  ID="SaySomething"  message="Hello World"/>
+           <SubTree ID="GraspObject"/>
+        </Sequence>
+     </BehaviorTree>
+     
+     <BehaviorTree ID="GraspObject">
+        <Sequence>
+           <Action ID="OpenGripper"/>
+           <Action ID="ApproachObject"/>
+           <Action ID="CloseGripper"/>
+        </Sequence>
+     </BehaviorTree>  
+ </root>
+```
+
+我们可以注意到，整个树 "GraspObject" 会在 "SaySomething" 之后执行。
+
+### Include external files
+
+**Since version 2.4.**
+
+你可以像在 C++ 中使用 `#include <file>` 那样包含外部文件。
+我们可以通过使用以下标签轻松实现这一点：
+
+```xml
+  <include path="relative_or_absolute_path_to_file">
+```
+
+结合前面的示例，我们可以将这两个行为树分别拆分到两个文件中：
+
+```xml
+ <!-- file maintree.xml -->
+
+ <root BTCPP_format="4" >
+     
+     <include path="grasp.xml"/>
+     
+     <BehaviorTree ID="MainTree">
+        <Sequence>
+           <Action  ID="SaySomething"  message="Hello World"/>
+           <SubTree ID="GraspObject"/>
+        </Sequence>
+     </BehaviorTree>
+  </root>
+```
+
+```xml
+ <!-- file grasp.xml -->
+
+ <root BTCPP_format="4" >
+     <BehaviorTree ID="GraspObject">
+        <Sequence>
+           <Action ID="OpenGripper"/>
+           <Action ID="ApproachObject"/>
+           <Action ID="CloseGripper"/>
+        </Sequence>
+     </BehaviorTree>  
+ </root>
+```
+
+Note：注意“Note for ROS users”：如果你想在某个 ROS 包中查找文件，可以使用以下语法：
+
+```xml
+<include ros_pkg="name_package"  path="path_relative_to_pkg/grasp.xml"/>
+```
