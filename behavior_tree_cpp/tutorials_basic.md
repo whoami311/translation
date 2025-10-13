@@ -621,3 +621,255 @@ void MoveBaseAction::onHalted()
 ```
 
 ### Sequence VS ReactiveSequence
+
+以下示例应使用一个简单的 `SequenceNode`。
+
+```xml
+ <root BTCPP_format="4">
+     <BehaviorTree>
+        <Sequence>
+            <BatteryOK/>
+            <SaySomething   message="mission started..." />
+            <MoveBase           goal="1;2;3"/>
+            <SaySomething   message="mission completed!" />
+        </Sequence>
+     </BehaviorTree>
+ </root>
+```
+
+```c++
+int main()
+{
+  BT::BehaviorTreeFactory factory;
+  factory.registerSimpleCondition("BatteryOK", std::bind(CheckBattery));
+  factory.registerNodeType<MoveBaseAction>("MoveBase");
+  factory.registerNodeType<SaySomething>("SaySomething");
+
+  auto tree = factory.createTreeFromText(xml_text);
+ 
+  // Here, instead of tree.tickWhileRunning(),
+  // we prefer our own loop.
+  std::cout << "--- ticking\n";
+  auto status = tree.tickOnce();
+  std::cout << "--- status: " << toStr(status) << "\n\n";
+
+  while(status == NodeStatus::RUNNING) 
+  {
+    // Sleep to avoid busy loops.
+    // do NOT use other sleep functions!
+    // Small sleep time is OK, here we use a large one only to
+    // have less messages on the console.
+    tree.sleep(std::chrono::milliseconds(100));
+
+    std::cout << "--- ticking\n";
+    status = tree.tickOnce();
+    std::cout << "--- status: " << toStr(status) << "\n\n";
+  }
+
+  return 0;
+}
+```
+
+预期输出：
+
+```
+--- ticking
+[ Battery: OK ]
+Robot says: mission started...
+[ MoveBase: SEND REQUEST ]. goal: x=1.0 y=2.0 theta=3.0
+--- status: RUNNING
+
+--- ticking
+--- status: RUNNING
+
+--- ticking
+[ MoveBase: FINISHED ]
+Robot says: mission completed!
+--- status: SUCCESS
+```
+
+你可能已经注意到，当调用 `executeTick()` 时，`MoveBase` 在第一次和第二次返回 **RUNNING**，最终在第三次返回 **SUCCESS**。
+
+`BatteryOK` 只会执行一次。
+
+但如果我们使用 `ReactiveSequence`，当子节点 `MoveBase` 返回 RUNNING 时，整个序列会被重新启动，条件节点 `BatteryOK` 将**再次**被执行。
+
+如果在任意时刻 `BatteryOK` 返回 **FAILURE**，那么 `MoveBase` 动作会被*中断*（更准确地说，是 *halted*）。
+
+```xml
+ <root>
+     <BehaviorTree>
+        <ReactiveSequence>
+            <BatteryOK/>
+            <Sequence>
+                <SaySomething   message="mission started..." />
+                <MoveBase           goal="1;2;3"/>
+                <SaySomething   message="mission completed!" />
+            </Sequence>
+        </ReactiveSequence>
+     </BehaviorTree>
+ </root>
+```
+
+预期输出：
+
+```
+--- ticking
+[ Battery: OK ]
+Robot says: mission started...
+[ MoveBase: SEND REQUEST ]. goal: x=1.0 y=2.0 theta=3.0
+--- status: RUNNING
+
+--- ticking
+[ Battery: OK ]
+--- status: RUNNING
+
+--- ticking
+[ Battery: OK ]
+[ MoveBase: FINISHED ]
+Robot says: mission completed!
+--- status: SUCCESS
+```
+
+### Event Driven trees?
+
+TIP：我们之所以使用 `tree.sleep()` 而不是 `std::this_thread::sleep_for()`，是有原因的！！！
+
+应优先使用 `Tree::sleep()` 方法，因为当树中的某个节点发生“状态变化”时，它可以被中断。
+
+当调用 `TreeNode::emitStateChanged()` 方法时，`Tree::sleep()` 将被中断。
+
+## 05. Compose behaviors using Subtrees
+
+我们可以通过将较小且可复用的行为插入到更大的行为中来构建大规模的行为。
+
+换句话说，我们希望创建**分层**的行为树并使它们**可组合**。
+
+可以在 XML 中定义多棵树，然后使用节点 **SubTree** 将一棵树包含到另一棵树中来实现这一点。
+
+### CrossDoor behavior
+
+这个示例的灵感来自一篇关于行为树的流行文章。
+
+它也是第一个实际使用 `Decorators` 和 `Fallback` 的示例。
+
+![crossdoor subtree](img/crossdoor_subtree.svg)
+
+```xml
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="MainTree">
+        <Sequence>
+            <Fallback>
+                <Inverter>
+                    <IsDoorClosed/>
+                </Inverter>
+                <SubTree ID="DoorClosed"/>
+            </Fallback>
+            <PassThroughDoor/>
+        </Sequence>
+    </BehaviorTree>
+
+    <BehaviorTree ID="DoorClosed">
+        <Fallback>
+            <OpenDoor/>
+            <RetryUntilSuccessful num_attempts="5">
+                <PickLock/>
+            </RetryUntilSuccessful>
+            <SmashDoor/>
+        </Fallback>
+    </BehaviorTree>
+    
+</root>
+```
+
+期望的行为如下：
+
+- 如果门是开着的，则执行 `PassThroughDoor`。
+- 如果门是关闭的，则依次尝试：`OpenDoor`；若失败，尝试 `PickLock`（最多尝试 5 次）；最后若仍未成功，则执行 `SmashDoor`。
+- 如果 `DoorClosed` 子树中的至少一个动作成功，则执行 `PassThroughDoor`。
+
+### The CPP code
+
+我们不会展示 `CrossDoor` 中虚拟动作的详细实现。
+唯一可能比较有趣的代码部分大概是 `registerNodes`。
+
+```c++
+
+class CrossDoor
+{
+public:
+    void registerNodes(BT::BehaviorTreeFactory& factory);
+
+    // SUCCESS if _door_open != true
+    BT::NodeStatus isDoorClosed();
+
+    // SUCCESS if _door_open == true
+    BT::NodeStatus passThroughDoor();
+
+    // After 3 attempts, will open a locked door
+    BT::NodeStatus pickLock();
+
+    // FAILURE if door locked
+    BT::NodeStatus openDoor();
+
+    // WILL always open a door
+    BT::NodeStatus smashDoor();
+
+private:
+    bool _door_open   = false;
+    bool _door_locked = true;
+    int _pick_attempts = 0;
+};
+
+// Helper method to make registering less painful for the user
+void CrossDoor::registerNodes(BT::BehaviorTreeFactory &factory)
+{
+  factory.registerSimpleCondition(
+      "IsDoorClosed", std::bind(&CrossDoor::isDoorClosed, this));
+
+  factory.registerSimpleAction(
+      "PassThroughDoor", std::bind(&CrossDoor::passThroughDoor, this));
+
+  factory.registerSimpleAction(
+      "OpenDoor", std::bind(&CrossDoor::openDoor, this));
+
+  factory.registerSimpleAction(
+      "PickLock", std::bind(&CrossDoor::pickLock, this));
+
+  factory.registerSimpleCondition(
+      "SmashDoor", std::bind(&CrossDoor::smashDoor, this));
+}
+
+int main()
+{
+  BehaviorTreeFactory factory;
+
+  CrossDoor cross_door;
+  cross_door.registerNodes(factory);
+
+  // In this example a single XML contains multiple <BehaviorTree>
+  // To determine which one is the "main one", we should first register
+  // the XML and then allocate a specific tree, using its ID
+
+  factory.registerBehaviorTreeFromText(xml_text);
+  auto tree = factory.createTree("MainTree");
+
+  // helper function to print the tree
+  printTreeRecursively(tree.rootNode());
+
+  tree.tickWhileRunning();
+
+  return 0;
+}
+```
+
+## 06. Remapping ports of a SubTrees
+
+在 CrossDoor 示例中，我们看到从父树的角度来看，`SubTree` 就像是一个单独的叶节点。
+
+为避免在非常大的树中发生名称冲突，任意树与其子树会使用不同的 Blackboard 实例。
+
+因此，我们需要显式地将父树的端口连接/映射到其子树的端口。
+
+你**无需**修改 C++ 实现，因为这种重映射完全在 XML 定义中完成。
