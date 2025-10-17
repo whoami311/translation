@@ -873,3 +873,215 @@ int main()
 因此，我们需要显式地将父树的端口连接/映射到其子树的端口。
 
 你**无需**修改 C++ 实现，因为这种重映射完全在 XML 定义中完成。
+
+### Example
+
+让我们来看看这棵行为树。
+
+![port remapping](img/port_remapping.svg)
+
+```xml
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="MainTree">
+        <Sequence>
+            <Script code=" move_goal='1;2;3' " />
+            <SubTree ID="MoveRobot" target="{move_goal}" 
+                                    result="{move_result}" />
+            <SaySomething message="{move_result}"/>
+        </Sequence>
+    </BehaviorTree>
+
+    <BehaviorTree ID="MoveRobot">
+        <Fallback>
+            <Sequence>
+                <MoveBase  goal="{target}"/>
+                <Script code=" result:='goal reached' " />
+            </Sequence>
+            <ForceFailure>
+                <Script code=" result:='error' " />
+            </ForceFailure>
+        </Fallback>
+    </BehaviorTree>
+
+</root>
+```
+
+你可能会注意到：
+
+- 我们有一个名为 `MainTree` 的主树，它包含一个子树 `MoveRobot`。
+- 我们想把 `MoveRobot` 子树内部的端口与 `MainTree` 中的其他端口“连接”（即“重映射”）。
+- 这是通过上面示例中使用的语法来完成的。
+
+### The CPP code
+
+这里没什么需要做的。我们使用 `debugMessage` 方法来检查 Blackboard 中的值。
+
+```c++
+int main()
+{
+  BT::BehaviorTreeFactory factory;
+
+  factory.registerNodeType<SaySomething>("SaySomething");
+  factory.registerNodeType<MoveBaseAction>("MoveBase");
+
+  factory.registerBehaviorTreeFromText(xml_text);
+  auto tree = factory.createTree("MainTree");
+
+  // Keep ticking until the end
+  tree.tickWhileRunning();
+
+  // let's visualize some information about the current state of the blackboards.
+  std::cout << "\n------ First BB ------" << std::endl;
+  tree.subtrees[0]->blackboard->debugMessage();
+  std::cout << "\n------ Second BB------" << std::endl;
+  tree.subtrees[1]->blackboard->debugMessage();
+
+  return 0;
+}
+
+/* Expected output:
+
+------ First BB ------
+move_result (std::string)
+move_goal (Pose2D)
+
+------ Second BB------
+[result] remapped to port of parent tree [move_result]
+[target] remapped to port of parent tree [move_goal]
+
+*/
+```
+
+## 07. How to use multiple XML files
+
+在我们展示的示例中，我们总是从**单个 XML 文件**创建整棵树及其子树。
+
+但随着子树数量的增加，使用多个文件会更为方便。
+
+### Our subtrees
+
+文件 **subtree_A.xml**：
+
+```xml
+<root>
+    <BehaviorTree ID="SubTreeA">
+        <SaySomething message="Executing Sub_A" />
+    </BehaviorTree>
+</root>
+```
+
+文件 **subtree_B.xml**：
+
+```xml
+<root>
+    <BehaviorTree ID="SubTreeB">
+        <SaySomething message="Executing Sub_B" />
+    </BehaviorTree>
+</root>
+```
+
+### Load multiple files manually (recommended)
+
+让我们考虑一个名为 **main_tree.xml** 的文件，它应当包含另外两个文件：
+
+```xml
+<root>
+    <BehaviorTree ID="MainTree">
+        <Sequence>
+            <SaySomething message="starting MainTree" />
+            <SubTree ID="SubTreeA" />
+            <SubTree ID="SubTreeB" />
+        </Sequence>
+    </BehaviorTree>
+</root>
+```
+
+手动加载多个文件：
+
+```c++
+int main()
+{
+  BT::BehaviorTreeFactory factory;
+  factory.registerNodeType<DummyNodes::SaySomething>("SaySomething");
+
+  // Find all the XML files in a folder and register all of them.
+  // We will use std::filesystem::directory_iterator
+  std::string search_directory = "./";
+
+  using std::filesystem::directory_iterator;
+  for (auto const& entry : directory_iterator(search_directory)) 
+  {
+    if( entry.path().extension() == ".xml")
+    {
+      factory.registerBehaviorTreeFromFile(entry.path().string());
+    }
+  }
+  // This, in our specific case, would be equivalent to
+  // factory.registerBehaviorTreeFromFile("./main_tree.xml");
+  // factory.registerBehaviorTreeFromFile("./subtree_A.xml");
+  // factory.registerBehaviorTreeFromFile("./subtree_B.xml");
+
+  // You can create the MainTree and the subtrees will be added automatically.
+  std::cout << "----- MainTree tick ----" << std::endl;
+  auto main_tree = factory.createTree("MainTree");
+  main_tree.tickWhileRunning();
+
+  // ... or you can create only one of the subtrees
+  std::cout << "----- SubA tick ----" << std::endl;
+  auto subA_tree = factory.createTree("SubTreeA");
+  subA_tree.tickWhileRunning();
+
+  return 0;
+}
+/* Expected output:
+
+Registered BehaviorTrees:
+ - MainTree
+ - SubTreeA
+ - SubTreeB
+----- MainTree tick ----
+Robot says: starting MainTree
+Robot says: Executing Sub_A
+Robot says: Executing Sub_B
+----- SubA tick ----
+Robot says: Executing Sub_A
+```
+
+### Add multiple files with "include"
+
+如果你更愿意将要包含的树的信息直接移到 XML 文件本身，可以按下面所示修改 **main_tree.xml**：
+
+```xml
+<root BTCPP_format="4">
+    <include path="./subtree_A.xml" />
+    <include path="./subtree_B.xml" />
+    <BehaviorTree ID="MainTree">
+        <Sequence>
+            <SaySomething message="starting MainTree" />
+            <SubTree ID="SubTreeA" />
+            <SubTree ID="SubTreeB" />
+        </Sequence>
+    </BehaviorTree>
+</root>
+```
+
+如你所见，我们在 **main_tree.xml** 中包含了两个相对路径，用来告诉 `BehaviorTreeFactory` 去哪里查找所需的依赖项。
+
+这些路径相对于 **main_tree.xml**。
+
+现在我们可以像平常一样创建该树：
+
+```cpp
+factory.createTreeFromFile("main_tree.xml")
+```
+
+## 08. Pass additional arguments to your Nodes
+
+在到目前为止我们探讨的每一个示例中，我们都被“迫使”提供具有以下签名的构造函数。
+
+```c++
+MyCustomNode(const std::string& name, const NodeConfig& config);
+```
+
+## 08. Pass additional arguments to your Nodes
