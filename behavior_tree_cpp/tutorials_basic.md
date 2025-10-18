@@ -110,7 +110,7 @@ private:
  </root>
 ```
 
-TIP：你可以在此处找到关于 XML 模式（schema）的更多详细信息。
+> TIP：你可以在此处找到关于 XML 模式（schema）的更多详细信息。
 
 我们必须先将自定义 TreeNodes 注册到 `BehaviorTreeFactory` 中，然后再从文件或文本中加载 XML。
 
@@ -185,11 +185,10 @@ BehaviorTree.CPP 提供了一种通过**端口**（ports）进行**数据流传�
 
 ![tutorial blackboard](img/tutorial_blackboard.svg)
 
-Main Concepts：
-
-- “Blackboard” 是一个简单的**键/值存储**，由树中所有节点共享。
-- Blackboard 的一个 “条目（entry）” 就是一个**键/值对**。
-- **输入端口**（Input port）可以读取 Blackboard 中的条目，而**输出端口**（Output port）可以写入条目。
+> Main Concepts：
+> - “Blackboard” 是一个简单的**键/值存储**，由树中所有节点共享。
+> - Blackboard 的一个 “条目（entry）” 就是一个**键/值对**。
+> - **输入端口**（Input port）可以读取 Blackboard 中的条目，而**输出端口**（Output port）可以写入条目。
 
 ### Inputs ports
 
@@ -212,7 +211,7 @@ Main Concepts：
 - 在**第一个**节点中，端口接收到字符串 "hello world"；
 - 而**第二个**节点则从 Blackboard 中查找名为 "greetings" 的条目值。
 
-CAUTION：条目 "greetings" 的值可以在运行时发生变化（并且很可能会变化）。
+> CAUTION：条目 "greetings" 的值可以在运行时发生变化（并且很可能会变化）。
 
 ActionNode `SaySomething` 可以实现如下：
 
@@ -264,11 +263,8 @@ static MyCustomNode::PortsList providedPorts();
 - 抛出异常？
 - 使用不同的默认值？
 
-IMPORTANT：
-
-**强烈**建议在 `tick()` 方法内部调用 `getInput()`，而**不要**在类的构造函数中调用。
-
-C++ 代码应当预期输入的实际值会在**运行时发生变化**，因此需要定期更新该值。
+> IMPORTANT：**强烈**建议在 `tick()` 方法内部调用 `getInput()`，而**不要**在类的构造函数中调用。
+> C++ 代码应当预期输入的实际值会在**运行时发生变化**，因此需要定期更新该值。
 
 ### Output ports
 
@@ -307,7 +303,7 @@ public:
 
 我们将在 BT.CPP 中关于新脚本语言的教程中，详细讲解 Action **Script**。
 
-TIP：如果你正在从 BT.CPP 3.X 版本迁移，**Script** 可以作为 **SetBlackboard** 的直接替代，而 **SetBlackboard** 现在已不推荐使用。
+> TIP：如果你正在从 BT.CPP 3.X 版本迁移，**Script** 可以作为 **SetBlackboard** 的直接替代，而 **SetBlackboard** 现在已不推荐使用。
 
 ### A complete example
 
@@ -518,11 +514,9 @@ int main()
 - 在 `tick()` 方法中不应阻塞过长时间，执行流程应尽可能快速返回。
 - 如果调用了 `halt()` 方法，应尽可能快速中止执行。
 
-CAUTION：
-
-了解更多关于 **异步动作（Asynchronous Actions）** 的内容
-
-用户应当充分理解 BT.CPP 中的 并发机制（Concurrency），并学习开发自定义 异步动作（Asynchronous Actions）的最佳实践。你可以在这里找到一篇详细的文章。
+> CAUTION：
+> #### 了解更多关于异步动作（Asynchronous Actions）的内容
+> 用户应当充分理解 BT.CPP 中的 并发机制（Concurrency），并学习开发自定义 异步动作（Asynchronous Actions）的最佳实践。你可以在这里找到一篇详细的文章。
 
 ### StatefulActionNode
 
@@ -733,7 +727,7 @@ Robot says: mission completed!
 
 ### Event Driven trees?
 
-TIP：我们之所以使用 `tree.sleep()` 而不是 `std::this_thread::sleep_for()`，是有原因的！！！
+> TIP：我们之所以使用 `tree.sleep()` 而不是 `std::this_thread::sleep_for()`，是有原因的！！！
 
 应优先使用 `Tree::sleep()` 方法，因为当树中的某个节点发生“状态变化”时，它可以被中断。
 
@@ -1085,3 +1079,567 @@ MyCustomNode(const std::string& name, const NodeConfig& config);
 ```
 
 ## 08. Pass additional arguments to your Nodes
+
+在到目前为止我们探讨的每一个示例中，我们都被“迫使”提供具有以下签名的构造函数：
+
+```c++
+MyCustomNode(const std::string& name, const NodeConfig& config);
+```
+
+在某些情况下，可能希望向类的构造函数传入额外的参数、指针、引用等。
+
+> CAUTION：有些人会用黑板来做这件事。**别这么做**。
+
+在本教程的其余部分，我们将仅使用单词 *"arguments"*（参数）。
+
+理论上这些 arguments **可以**通过输入端口（Input Ports）传递，但在下列情况下这样做是不合适的：
+
+- 这些 arguments 在*部署时*（构建树时）就已知；
+- 这些 arguments 在*运行时*不会改变；
+- 这些 arguments 不需要由 XML 来设置。
+
+如果以上所有条件都成立，则强烈不建议使用端口或 Blackboard 来传递这些参数。
+
+### Add arguments to your constructor (recommended)
+
+考虑下面这个自定义节点 **Action_A**。我们希望传入两个额外的参数；它们可以是任意复杂的对象，不局限于内置类型。
+
+```c++
+// Action_A has a different constructor than the default one.
+class Action_A: public SyncActionNode
+{
+
+public:
+    // additional arguments passed to the constructor
+    Action_A(const std::string& name, const NodeConfig& config,
+             int arg_int, std::string arg_str):
+        SyncActionNode(name, config),
+        _arg1(arg_int),
+        _arg2(arg_str) {}
+
+    // this example doesn't require any port
+    static PortsList providedPorts() { return {}; }
+
+    // tick() can access the private members
+    NodeStatus tick() override;
+
+private:
+    int _arg1;
+    std::string _arg2;
+};
+```
+
+注册此节点并传入已知参数非常简单，如下所示：
+
+```c++
+BT::BehaviorTreeFactory factory;
+factory.registerNodeType<Action_A>("Action_A", 42, "hello world");
+
+// If you prefer to specify the template parameters
+// factory.registerNodeType<Action_A, int, std::string>("Action_A", 42, "hello world");
+```
+
+### Use an "initialize" method
+
+如果你出于任何原因需要为某种节点类型的各个实例传入不同的值，可以考虑下面这种替代模式：
+
+```c++
+class Action_B: public SyncActionNode
+{
+
+public:
+    // The constructor looks as usual.
+    Action_B(const std::string& name, const NodeConfig& config):
+        SyncActionNode(name, config) {}
+
+    // We want this method to be called ONCE and BEFORE the first tick()
+    void initialize(int arg_int, const std::string& arg_str)
+    {
+        _arg1 = arg_int;
+        _arg2 = arg_str;
+    }
+
+    // this example doesn't require any port
+    static PortsList providedPorts() { return {}; }
+
+    // tick() can access the private members
+    NodeStatus tick() override;
+
+private:
+    int _arg1;
+    std::string _arg2;
+};
+```
+
+我们注册和初始化 `Action_B` 的方式有所不同：
+
+```c++
+BT::BehaviorTreeFactory factory;
+
+// Register as usual, but we still need to initialize
+factory.registerNodeType<Action_B>("Action_B");
+
+// Create the whole tree. Instances of Action_B are not initialized yet
+auto tree = factory.createTreeFromText(xml_text);
+
+// visitor will initialize the instances of 
+auto visitor = [](TreeNode* node)
+{
+  if (auto action_B_node = dynamic_cast<Action_B*>(node))
+  {
+    action_B_node->initialize(69, "interesting_value");
+  }
+};
+
+// Apply the visitor to ALL the nodes of the tree
+tree.applyVisitor(visitor);
+```
+
+## 09. Introduction to the Scripting language
+
+更详细的说明可见 Introduction to Scripting 页面。本教程提供了一个非常基础的示例，可作为初学者的练习场。
+
+### Script and Precondition nodes
+
+在我们的脚本语言中，变量是 Blackboard 中的条目。
+
+在此示例中，我们使用节点 **Script** 来设置这些变量，并可以看到在 **SaySomething** 中可以将它们作为输入端口访问。
+
+支持的类型包括数字（整数和实数）、字符串以及已注册的枚举（ENUMS）。
+
+> CAUTION：
+> 请注意，我们使用的是 **magic_enum**，它存在一些已知的限制。
+> 其中一个显著的限制是：默认枚举范围为 [-128, 128]，除非按照上面链接中所述的方法进行修改。
+
+我们将使用以下 XML：
+
+```xml
+<root BTCPP_format="4">
+  <BehaviorTree>
+    <Sequence>
+      <Script code=" msg:='hello world' " />
+      <Script code=" A:=THE_ANSWER; B:=3.14; color:=RED " />
+        <Precondition if="A>B && color != BLUE" else="FAILURE">
+          <Sequence>
+            <SaySomething message="{A}"/>
+            <SaySomething message="{B}"/>
+            <SaySomething message="{msg}"/>
+            <SaySomething message="{color}"/>
+        </Sequence>
+      </Precondition>
+    </Sequence>
+  </BehaviorTree>
+</root>
+```
+
+我们预期以下黑板条目将包含：
+
+- **msg**: 字符串 "hello world"
+- **A**: 与别名 THE_ANSWER 对应的整数值。
+- **B**: 实数值 3.14
+- **C**: 与枚举 RED 对应的整数值。
+
+因此，预期输出为：
+
+```
+Robot says: 42.000000
+Robot says: 3.140000
+Robot says: hello world
+Robot says: 1.000000
+```
+
+对应的 C++ 代码如下：
+
+```c++
+enum Color
+{
+  RED = 1,
+  BLUE = 2,
+  GREEN = 3
+};
+
+int main()
+{
+  BehaviorTreeFactory factory;
+  factory.registerNodeType<DummyNodes::SaySomething>("SaySomething");
+
+  // We can add these enums to the scripting language.
+  // Check the limits of magic_enum
+  factory.registerScriptingEnums<Color>();
+
+  // Or we can manually assign a number to the label "THE_ANSWER".
+  // This is not affected by any range limitation
+  factory.registerScriptingEnum("THE_ANSWER", 42);
+
+  auto tree = factory.createTreeFromText(xml_text);
+  tree.tickWhileRunning();
+
+  return 0;
+}
+```
+
+## 10. The logger interface
+
+BT.CPP 提供了一种在运行时向树添加**日志记录器**（logger）的方法，通常是在创建树之后、开始执行 tick 之前进行。
+
+“logger”是一个类，每当某个 TreeNode 状态发生变化时，其回调函数就会被调用；这是一种非侵入式的观察者模式（observer pattern）实现。
+
+更具体地说，会被调用的回调函数是：
+
+```c++
+  virtual void callback(
+    BT::Duration timestamp, // When the transition happened
+    const TreeNode& node,   // the node that changed its status
+    NodeStatus prev_status, // the previous status
+    NodeStatus status);     // the new status
+```
+
+### The TreeObserver class
+
+有时，尤其是在实现**单元测试**时，了解某个节点返回 SUCCESS 或 FAILURE 的次数会非常方便。
+
+例如，我们希望验证在某些条件下，某个分支被执行，而另一个分支没有被执行。
+
+`TreeObserver` 是一个简单的日志记录器（logger）实现，它会为树中的每个节点收集以下统计信息：
+
+```c++
+struct NodeStatistics
+  {
+    // Last valid result, either SUCCESS or FAILURE
+    NodeStatus last_result;
+    // Last status. Can be any status, including IDLE or SKIPPED
+    NodeStatus current_status;
+    // count status transitions, excluding transition to IDLE
+    unsigned transitions_count;
+    // count number of transitions to SUCCESS
+    unsigned success_count;
+    // count number of transitions to FAILURE
+    unsigned failure_count;
+    // count number of transitions to SKIPPED
+    unsigned skip_count;
+    // timestamp of the last transition
+    Duration last_timestamp;
+  };
+```
+
+### How to uniquely identify a Node
+
+由于观察器（observer）允许我们收集特定节点的统计信息，因此我们需要一种方式来唯一标识该节点：
+
+可以使用以下两种机制：
+
+- `TreeNode::UID()`：一个唯一的数字，对应于树的深度优先遍历顺序。
+- `TreeNode::fullPath()`：一个旨在提供唯一且可读性高的字符串，用于标识特定节点。
+
+我们使用术语 “path”（路径），因为典型的字符串值可能看起来像这样：
+
+```
+ first_subtree/nested_subtree/node_name
+```
+
+换句话说，path（路径）包含了一个节点在 Subtree 层级结构中的位置信息。
+
+其中，“node_name” 要么是 XML 中分配的 name 属性值；
+要么是在未指定名称时，由系统自动分配，格式为节点注册名 + "::" + UID。
+
+### Example (XML)
+
+考虑下面的 XML，从 SubTrees（子树）的角度来看，它具有非平凡的层次结构：
+
+```xml
+<root BTCPP_format="4">
+  <BehaviorTree ID="MainTree">
+    <Sequence>
+     <Fallback>
+       <AlwaysFailure name="failing_action"/>
+       <SubTree ID="SubTreeA" name="mysub"/>
+     </Fallback>
+     <AlwaysSuccess name="last_action"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="SubTreeA">
+    <Sequence>
+      <AlwaysSuccess name="action_subA"/>
+      <SubTree ID="SubTreeB" name="sub_nested"/>
+      <SubTree ID="SubTreeB" />
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="SubTreeB">
+    <AlwaysSuccess name="action_subB"/>
+  </BehaviorTree>
+</root>
+```
+
+你可能会注意到，有些节点具有 XML 属性 “name”，而有些则没有。
+
+对应的 **UID** -> **fullPath** 对照列表如下：
+
+```
+1 -> Sequence::1
+2 -> Fallback::2
+3 -> failing_action
+4 -> mysub
+5 -> mysub/Sequence::5
+6 -> mysub/action_subA
+7 -> mysub/sub_nested
+8 -> mysub/sub_nested/action_subB
+9 -> mysub/SubTreeB::9
+10 -> mysub/SubTreeB::9/action_subB
+11 -> last_action
+```
+
+### Example (C++)
+
+下面的应用程序将会：
+
+- 递归打印树的结构。
+- 将 `TreeObserver` 附加到树上。
+- 打印 `UID / fullPath` 对照对。
+- 收集名为 "last_action" 的特定节点的统计信息。
+- 显示观察器收集的所有统计数据。
+
+```c++
+int main()
+{
+  BT::BehaviorTreeFactory factory;
+
+  factory.registerBehaviorTreeFromText(xml_text);
+  auto tree = factory.createTree("MainTree");
+
+  // Helper function to print the tree.
+  BT::printTreeRecursively(tree.rootNode());
+
+  // The purpose of the observer is to save some statistics about the number of times
+  // a certain node returns SUCCESS or FAILURE.
+  // This is particularly useful to create unit tests and to check if
+  // a certain set of transitions happened as expected
+  BT::TreeObserver observer(tree);
+
+  // Print the unique ID and the corresponding human readable path
+  // Path is also expected to be unique.
+  std::map<uint16_t, std::string> ordered_UID_to_path;
+  for(const auto& [name, uid]: observer.pathToUID()) {
+    ordered_UID_to_path[uid] = name;
+  }
+
+  for(const auto& [uid, name]: ordered_UID_to_path) {
+    std::cout << uid << " -> " << name << std::endl;
+  }
+
+
+  tree.tickWhileRunning();
+
+  // You can access a specific statistic, using is full path or the UID
+  const auto& last_action_stats = observer.getStatistics("last_action");
+  assert(last_action_stats.transitions_count > 0);
+
+  std::cout << "----------------" << std::endl;
+  // print all the statistics
+  for(const auto& [uid, name]: ordered_UID_to_path) {
+    const auto& stats = observer.getStatistics(uid);
+
+    std::cout << "[" << name
+              << "] \tT/S/F:  " << stats.transitions_count
+              << "/" << stats.success_count
+              << "/" << stats.failure_count
+              << std::endl;
+  }
+
+  return 0;
+}
+```
+
+## 11. tutorial_11_groot2
+
+**Groot2** 是用于编辑、监控和交互 **BT.CPP** 创建的行为树的官方 IDE。
+
+如本教程所示，将两者集成非常容易，但在此之前，你需要先理解一些基本概念。
+
+### The TreeNodesModel
+
+Groot 需要一个 “TreeNode 模型”。
+
+![t12 groot models](img/t12_groot_models.png)
+
+例如，在上图中，Groot 需要知道用户自定义的节点 `ThinkWhatToSay` 和 `SaySomething` 存在。
+
+此外，它还需要：
+
+- 节点类型（Node type）
+- 端口的名称和类型（输入/输出）
+
+这些模型以 XML 的形式表示。在本例中，它们将是：
+
+```xml
+  <TreeNodesModel>
+    <Action ID="SaySomething">
+      <input_port name="message"/>
+    </Action>
+    <Action ID="ThinkWhatToSay">
+      <output_port name="text"/>
+    </Action>
+  </TreeNodesModel>
+```
+
+不过，**你不应手动创建这些 XML 描述**。
+
+BT.CPP 提供了一个专门的函数，可以为你生成这些 XML。
+
+```c++
+  BT::BehaviorTreeFactory factory;
+  //
+  // register here your user-defined Nodes
+  // 
+  std::string xml_models = BT::writeTreeNodesModelXML(factory);
+
+  // this xml_models should be saved to file and 
+  // loaded in Groot2
+```
+
+要将这些模型导入到 UI 中，可以选择以下方式之一：
+
+- 将 XML 保存到一个文件（例如 `models.xml`），然后在 Groot2 中点击 **Import Models** 按钮。
+- 或者将 XML 部分手动添加到你的 `.xml` 或 `.btproj` 文件中。
+
+### Adding real-time visualization to Groot
+
+> Note：目前，只有 Groot2 PRO 版本支持实时可视化。
+
+将行为树连接到 Groot2 只需一行代码：
+
+```c++
+BT::Groot2Publisher publisher(tree);
+```
+
+这将在你的 BT.CPP 执行器与 Groot2 之间创建一个进程间通信服务，该服务可以：
+
+- 将整个树结构发送给 Groot2，包括前面提到的模型（Models）。
+- 定期更新各个节点的状态（RUNNING、SUCCESS、FAILURE、IDLE）。
+- 发送 Blackboard 的值；内置支持基本类型，如整数、实数和字符串，其他类型需要手动添加。
+- 允许 Groot2 插入断点、执行节点替换或故障注入。
+
+完整示例：
+
+```xml
+<root BTCPP_format="4">
+
+  <BehaviorTree ID="MainTree">
+    <Sequence>
+      <Script code="door_open:=false" />
+      <Fallback>
+        <Inverter>
+          <IsDoorClosed/>
+        </Inverter>
+        <SubTree ID="DoorClosed" _autoremap="true" door_open="{door_open}"/>
+      </Fallback>
+      <PassThroughDoor/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="DoorClosed">
+    <Fallback name="tryOpen" _onSuccess="door_open:=true">
+      <OpenDoor/>
+        <RetryUntilSuccessful num_attempts="5">
+          <PickLock/>
+        </RetryUntilSuccessful>
+      <SmashDoor/>
+    </Fallback>
+  </BehaviorTree>
+
+</root>
+```
+
+```c++
+int main()
+{
+  BT::BehaviorTreeFactory factory;
+
+  // Our set of simple Nodes, related to CrossDoor
+  CrossDoor cross_door;
+  cross_door.registerNodes(factory);
+
+  // Groot2 editor requires a model of your registered Nodes.
+  // You don't need to write that by hand, it can be automatically
+  // generated using the following command.
+  std::string xml_models = BT::writeTreeNodesModelXML(factory);
+
+  factory.registerBehaviorTreeFromText(xml_text);
+  auto tree = factory.createTree("MainTree");
+
+  // Connect the Groot2Publisher. This will allow Groot2 to
+  // get the tree and poll status updates.
+  BT::Groot2Publisher publisher(tree);
+
+  // we want to run this indefinitely
+  while(1)
+  {
+    std::cout << "Start" << std::endl;
+    cross_door.reset();
+    tree.tickWhileRunning();
+    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+  }
+  return 0;
+}
+```
+
+### Visualize custom types in the Blackboard
+
+黑板（Blackboard）中的内容以 JSON 格式发送给 Groot2。
+
+要添加新类型并让 Groot2 能够可视化它们，你应按照此处的说明操作：
+
+[https://json.nlohmann.me/features/arbitrary_types/](https://json.nlohmann.me/features/arbitrary_types/)
+
+例如，给定一个用户自定义类型：
+
+```c++
+struct Pose2D {
+    double x;
+    double y;
+    double theta;
+}
+```
+
+你需要包含 **behaviortree_cpp/json_export.h**，并根据你的 BT.CPP 版本遵循相应的说明。
+
+#### Version 4.3.5 or earlier
+
+实现函数 `nlohmann::to_json()`：
+
+```c++
+namespace nlohmann {
+  void to_json(nlohmann::json& dest, const Pose2D& pose) {
+    dest["x"] = pose.x;
+    dest["y"] = pose.y;
+    dest["theta"] = pose.theta;
+  }
+}
+```
+
+然后，在 `main` 中注册该函数，方法如下：
+
+```c++
+BT::JsonExporter::get().addConverter<Pose2D>();
+```
+
+#### Version 4.3.6 or later
+
+`to_json` 函数的实现可以使用任意名称或命名空间，但必须符合函数签名：`void(nlohmann::json&, const T&)`。
+
+例如：
+
+```c++
+void PoseToJson(nlohmann::json& dest, const Pose2D& pose) {
+  dest["x"] = pose.x;
+  dest["y"] = pose.y;
+  dest["theta"] = pose.theta;
+}
+```
+
+在 `main` 中注册该函数，方法如下：
+
+```c++
+BT::RegisterJsonDefinition<Pose2D>(PoseToJson);
+```

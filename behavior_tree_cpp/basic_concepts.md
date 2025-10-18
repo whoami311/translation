@@ -17,7 +17,7 @@
 - 如果一个 TreeNode 拥有一个或多个子节点，则由该节点负责继续传播 tick；不同类型的节点在是否、何时以及对子节点 tick 的次数上可能有不同的规则。
 - **叶节点**（LeafNodes，即没有子节点的 TreeNode）是真正执行命令的节点——行为树与系统其余部分交互的地方。**动作**节点（Action nodes）是最常见的叶节点类型。
 
-Tip：单词 **“tick”** 常作为动词使用（to tick / to be ticked），其含义是：
+> Tip：单词 **“tick”** 常作为动词使用（to tick / to be ticked），其含义是：
 
 ```
 "To invoke the callback `tick()` of a `TreeNode`".
@@ -199,7 +199,7 @@ NodeStatus HelloTick()
 factory.registerSimpleAction("Hello", std::bind(HelloTick));
 ```
 
-TIP：工厂可能会创建节点 `Hello` 的多个实例。
+> TIP：工厂可能会创建节点 `Hello` 的多个实例。
 
 ### Create custom nodes with inheritance
 
@@ -403,7 +403,7 @@ Blackboard 的键使用如下语法表示：`{key_name}`。
  </root>
 ```
 
-Note：注意“Note for ROS users”：如果你想在某个 ROS 包中查找文件，可以使用以下语法：
+> Note：注意“Note for ROS users”：如果你想在某个 ROS 包中查找文件，可以使用以下语法：
 
 ```xml
 <include ros_pkg="name_package"  path="path_relative_to_pkg/grasp.xml"/>
